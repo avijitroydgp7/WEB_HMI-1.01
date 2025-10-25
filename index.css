@@ -235,9 +235,10 @@ body {
   padding: 8px;
   overflow: auto;
   height: 100%; /* Ensure content can scroll */
-  box-sizing: border-box;
+  /* box-sizing: border-box; -- No longer needed here, moved to global */
 }
 
+/* --- REVISED TREE VIEW STYLES (Attempt 6 - Solid Lines) --- */
 .tree-view {
   list-style: none;
   padding-left: 0;
@@ -245,14 +246,80 @@ body {
 }
 
 .tree-item {
-  padding-left: 20px;
   position: relative;
 }
 
-.tree-item .material-icons {
-  font-size: 16px;
-  margin-right: 4px;
+/* The nested list of children */
+.tree-children {
+  list-style: none;
+  margin: 0;
+  padding-left: 20px; 
+  position: relative;
 }
+
+/* The node itself (clickable part) */
+.tree-node {
+  display: flex;
+  align-items: center;
+  user-select: none;
+  padding: 1px 0;
+  position: relative;
+}
+.tree-node:hover {
+  background-color: var(--hover-bg);
+}
+
+/* Vertical line for all items */
+.tree-children > .tree-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -11px; 
+    /* --- CHANGED --- */
+    border-left: 1px solid var(--text-color-darker);
+}
+
+/* Horizontal line for all items */
+.tree-children > .tree-item::after {
+    content: '';
+    position: absolute;
+    top: 13px; 
+    left: -11px; 
+    width: 27px; 
+    height: 0;
+    /* --- CHANGED --- */
+    border-top: 1px solid var(--text-color-darker);
+}
+
+/* Stop the vertical line for the LAST item */
+.tree-children > .tree-item:last-child::before {
+    height: 13px; /* Stop at the horizontal line */
+}
+
+/* The expand/collapse icon container */
+.tree-toggle {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+.tree-toggle .material-icons {
+  font-size: 20px;
+  color: var(--text-color-darker);
+  margin: 0;
+}
+
+/* Icon for the item itself */
+.tree-icon {
+  font-size: 20px;
+  margin-right: 2px;
+}
+/* --- END OF REVISED TREE STYLES --- */
+
 
 /* Properties Panel */
 .properties-panel-content {
