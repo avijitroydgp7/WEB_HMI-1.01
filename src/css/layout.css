@@ -43,6 +43,11 @@
 /* --- Docking Panels (Docks) --- */
 .dock-item-content {
   padding: 8px;
-  overflow: auto;
   height: 100%; /* Ensure content can scroll */
+  
+  /* --- MODIFICATIONS HERE --- */
+  box-sizing: border-box;  /* Include padding in height calculation */
+  overflow-y: auto;      /* Only show vertical scroll if needed */
+  overflow-x: hidden;    /* Never show horizontal scroll */
+  /* --- END MODIFICATION --- */
 }
