@@ -1,0 +1,142 @@
+/* --- GradientModal specific styles --- */
+.gradient-picker-content {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+}
+.gradient-layout-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 20px;
+}
+
+.gradient-color-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+}
+.gradient-color-selection .form-group-inline {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+.gradient-color-selection .form-group-inline label {
+    margin-bottom: 0;
+    font-weight: normal;
+}
+
+.gradient-variation-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    width: 100%;
+    margin: 0;
+}
+
+.gradient-variation-swatch {
+    width: 100%;
+    padding-top: 100%;
+    position: relative;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    cursor: pointer;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+.gradient-variation-swatch > div {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+}
+.gradient-variation-swatch:hover {
+    border-color: var(--text-color);
+}
+.gradient-variation-swatch.selected {
+    border: 2px solid var(--accent-color);
+}
+
+
+/* --- PatternModal specific styles --- */
+.pattern-picker-content {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+}
+.pattern-color-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+}
+.pattern-color-selection .form-group-inline {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+.pattern-color-selection .form-group-inline label {
+    margin-bottom: 0;
+    font-weight: normal;
+}
+
+.pattern-grid {
+    display: grid;
+    /* Use auto-fit and minmax for a responsive grid */
+    grid-template-columns: repeat(auto-fit, minmax(60px, 1fr));
+    gap: 8px;
+    width: 100%;
+    margin: 0;
+}
+
+.pattern-swatch {
+    width: 100%;
+    padding-top: 100%;
+    position: relative;
+    border: 1px solid var(--border-color);
+    border-radius: 2px;
+    cursor: pointer;
+    box-sizing: border-box;
+    background-image:
+        linear-gradient(45deg, #444 25%, transparent 25%),
+        linear-gradient(-45deg, #444 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #444 75%),
+        linear-gradient(-45deg, transparent 75%, #444 75%);
+    background-size: 10px 10px;
+    background-position: 0 0, 0 5px, 5px -5px, -5px 0px;
+    overflow: hidden;
+}
+.pattern-swatch > div {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+}
+.pattern-swatch:hover {
+    border-color: var(--text-color);
+}
+.pattern-swatch.selected {
+    border: 2px solid var(--accent-color);
+}
+
+
+/* --- Responsive styles for pickers --- */
+@media (max-width: 500px) {
+    .gradient-layout-grid {
+        /* Stack columns vertically on small screens */
+        grid-template-columns: 1fr;
+    }
+
+    .gradient-color-selection .form-group-inline,
+    .pattern-color-selection .form-group-inline {
+        /* Ensure color pickers don't overflow */
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .gradient-color-selection .form-group-inline .color-swatch-container,
+    .pattern-color-selection .form-group-inline .color-swatch-container {
+        width: 100%; /* Make color swatch full width */
+    }
+}

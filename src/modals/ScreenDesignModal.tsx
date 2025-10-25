@@ -63,17 +63,46 @@ export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, on
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const modalRef = useRef<HTMLDivElement>(null);
 
-    // --- EFFECT TO CENTER MODAL ON OPEN ---
-    useEffect(() => {
-        if (isOpen && modalRef.current) {
+    // --- Reusable centering function ---
+    const centerModal = useCallback(() => {
+        if (modalRef.current) {
             const { innerWidth, innerHeight } = window;
             const { offsetWidth, offsetHeight } = modalRef.current;
-            setPosition({
-                x: (innerWidth - offsetWidth) / 2,
-                y: (innerHeight - offsetHeight) / 2,
-            });
+            
+            const x = Math.max(0, (innerWidth - offsetWidth) / 2);
+            const y = Math.max(0, (innerHeight - offsetHeight) / 2);
+            
+            setPosition({ x, y });
         }
-    }, [isOpen]);
+    }, []);
+
+    // --- EFFECT TO CENTER MODAL AND ADD KEYDOWN LISTENER ---
+    useEffect(() => {
+        if (isOpen) {
+            centerModal();
+            
+            const handleKeyDown = (e: KeyboardEvent) => {
+                if (e.key === 'Escape') {
+                    // --- MODIFIED: Only close if no sub-modals are open ---
+                    if (isGradientModalOpen || isPatternModalOpen) {
+                        // A sub-modal is open, let its listener (in DraggableModal) handle 'Escape'
+                        return;
+                    }
+                    // --- END MODIFICATION ---
+                    onClose();
+                }
+            };
+            
+            window.addEventListener('resize', centerModal);
+            document.addEventListener('keydown', handleKeyDown); // Add listener
+
+            // Cleanup listener
+            return () => {
+                window.removeEventListener('resize', centerModal);
+                document.removeEventListener('keydown', handleKeyDown); // Remove listener
+            };
+        }
+    }, [isOpen, centerModal, onClose, isGradientModalOpen, isPatternModalOpen]); // --- ADDED dependencies ---
 
     // --- DRAG HANDLERS ---
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -168,7 +197,6 @@ export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, on
             case 'colour':
                 const colorOpacity = 1 - (colorTransparency / 100);
                 return (
-                    // --- MODIFIED: Added 'wide-content' class ---
                     <div className="fill-content-area-column wide-content">
                         <div className="fill-preview-input-container">
                             <div
@@ -184,7 +212,6 @@ export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, on
                                 className="color-input-overlay"
                             />
                         </div>
-                        {/* --- END MODIFICATION --- */}
 
                         <div className="opacity-slider-group">
                             <label htmlFor="transparencySlider">Transparency:</label>
@@ -201,7 +228,6 @@ export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, on
             
             case 'gradient':
                 const gradientOpacity = 1 - (gradientTransparency / 100);
-                // We must apply opacity to the colors *before* creating the gradient
                 const gradPreview = getGradientStyle(
                     hexToRgba(gradientColor1, gradientOpacity),
                     hexToRgba(gradientColor2, gradientOpacity),
@@ -235,7 +261,6 @@ export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, on
                 const patternOpacity = 1 - (patternTransparency / 100);
                 const patternId = PATTERNS[selectedPatternIndex];
                 
-                // Get style with opacity applied for preview
                 const patternStyle = getPatternStyle(
                     patternForegroundColor, 
                     patternBackgroundColor, 
@@ -417,3 +442,4 @@ export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, on
         </>
     );
 };
+

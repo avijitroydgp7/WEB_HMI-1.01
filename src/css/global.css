@@ -1,0 +1,69 @@
+/* --- Global Styles --- */
+:root {
+  --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --bg-color: #1e1e1e;
+  --panel-bg: #252526;
+  --border-color: #333333;
+  --text-color: #cccccc;
+  --text-color-darker: #888888;
+  --accent-color: #007acc;
+  --hover-bg: #333333;
+  --menu-bg: #2d2d2d;
+  --menu-shadow: rgba(0, 0, 0, 0.5);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  font-size: 13px;
+  overflow: hidden; /* Prevent body scrollbars */
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+}
+
+/* --- Material Icons --- */
+.material-icons {
+  font-size: 16px;
+  vertical-align: middle;
+}
+
+/* --- Custom Scrollbar Styles --- */
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--hover-bg) var(--bg-color);
+}
+
+/* Chrome, Edge, and Safari */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--panel-bg);
+  border-radius: 5px;
+  border: 2px solid var(--bg-color);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--hover-bg);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background-color: var(--accent-color);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}

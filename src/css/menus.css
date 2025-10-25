@@ -1,0 +1,89 @@
+/* --- Menu Bar --- */
+.menu-bar {
+  display: flex;
+  background-color: var(--panel-bg);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 4px;
+  height: 30px;
+  align-items: center;
+}
+
+.menu-bar-item {
+  padding: 4px 8px;
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+}
+
+.menu-bar-item:hover {
+  background-color: var(--accent-color);
+}
+
+/* --- Dropdown Menus --- */
+.menu-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background-color: var(--menu-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 8px var(--menu-shadow);
+  padding: 4px 0;
+  z-index: 1000;
+  min-width: 250px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.menu-item:hover {
+  background-color: var(--accent-color);
+}
+
+.menu-item .shortcut {
+  margin-left: auto;
+  padding-left: 20px;
+  color: var(--text-color-darker);
+}
+
+.menu-separator {
+  height: 1px;
+  background-color: var(--border-color);
+  margin: 4px 0;
+}
+
+/* Submenus */
+.menu-item-submenu {
+  position: relative;
+}
+.menu-item-submenu::after {
+  content: '▶';
+  position: absolute;
+  right: 8px;
+  font-size: 10px;
+}
+
+.submenu-dropdown {
+  top: -5px; /* Adjust vertical alignment */
+  left: 100%;
+}
+
+/* Checkable Menu Item */
+.menu-item .material-icons.check-icon {
+    font-size: 18px; /* Make checkbox bigger */
+    width: 20px;
+    height: 20px;
+    margin-right: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.menu-item .material-icons {
+    margin-right: 8px;
+}

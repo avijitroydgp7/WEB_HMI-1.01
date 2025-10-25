@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 
 interface DraggableModalProps {
     isOpen: boolean;
@@ -23,22 +23,45 @@ export const DraggableModal: React.FC<DraggableModalProps> = ({
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const modalRef = useRef<HTMLDivElement>(null);
 
-    // Center modal on open, with a slight random offset
-    useEffect(() => {
-        if (isOpen && modalRef.current) {
+    // --- Reusable centering function ---
+    const centerModal = useCallback(() => {
+        if (modalRef.current) {
             const { innerWidth, innerHeight } = window;
             const { offsetWidth, offsetHeight } = modalRef.current;
-            setPosition({
-                x: (innerWidth - offsetWidth) / 2 + Math.random() * 40 - 20,
-                y: (innerHeight - offsetHeight) / 2 + Math.random() * 40 - 20,
-            });
+            
+            const x = Math.max(0, (innerWidth - offsetWidth) / 2);
+            const y = Math.max(0, (innerHeight - offsetHeight) / 2);
+            
+            setPosition({ x, y });
         }
-    }, [isOpen]);
+    }, []); 
+
+    // --- EFFECT TO CENTER MODAL AND ADD KEYDOWN LISTENER ---
+    useEffect(() => {
+        if (isOpen) {
+            centerModal();
+            
+            // --- ADDED: Escape key listener ---
+            const handleKeyDown = (e: KeyboardEvent) => {
+                if (e.key === 'Escape') {
+                    onClose();
+                }
+            };
+
+            window.addEventListener('resize', centerModal);
+            document.addEventListener('keydown', handleKeyDown); // Add listener
+
+            // Cleanup listener
+            return () => {
+                window.removeEventListener('resize', centerModal);
+                document.removeEventListener('keydown', handleKeyDown); // Remove listener
+            };
+        }
+    }, [isOpen, centerModal, onClose]); // --- ADDED: onClose dependency ---
 
     const handleMouseDown = (e: React.MouseEvent) => {
         if (e.button !== 0) return;
         
-        // Prevent dragging when clicking on interactive elements
         const target = e.target as HTMLElement;
         if (target.closest('input, select, button, label, .color-swatch-container, .gradient-variation-swatch, .pattern-swatch')) {
             return;
@@ -73,20 +96,19 @@ export const DraggableModal: React.FC<DraggableModalProps> = ({
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseDown={(e) => {
-                // Close if user clicks on the dark overlay background
                 if (e.target === e.currentTarget) {
                     onClose();
                 }
             }}
         >
             <div
-                className="modal-content"
+                className="modal-content modal-content-small"
                 ref={modalRef}
                 style={{
                     transform: `translate(${position.x}px, ${position.y}px)`,
-                    zIndex: 2001, // Ensure it's on top of the main modal
+                    zIndex: 2001,
                 }}
-                onMouseDown={(e) => e.stopPropagation()} // Stop overlay click
+                onMouseDown={(e) => e.stopPropagation()} 
             >
                 <div
                     className="modal-header"
