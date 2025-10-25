@@ -21,7 +21,6 @@ export const ScreenTreeDock: React.FC<ScreenTreeDockProps> = ({ onOpenScreenDesi
                     <TreeItem label="Base Screens" icon="web" />
                     <TreeItem label="Window Screens" icon="window" />
                     <TreeItem label="Template" icon="description" />
-                    <TreeItem label="Screens" icon="tv" />
                     <TreeItem label="Widgets" icon="widgets" />
                 </TreeItem>
             </ul>

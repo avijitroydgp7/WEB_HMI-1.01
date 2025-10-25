@@ -93,7 +93,18 @@
 
 .form-group input[type="number"] {
   width: 100px;
+  /* --- ADDITION: Hide Firefox spinner --- */
+  -moz-appearance: textfield;
 }
+
+/* --- ADDITION: Hide Webkit/Chrome spinner --- */
+.form-group input[type="number"]::-webkit-inner-spin-button,
+.form-group input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+/* --- END ADDITION --- */
+
 
 .form-group select {
   min-width: 150px;

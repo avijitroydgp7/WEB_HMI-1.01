@@ -11,7 +11,9 @@ interface ScreenDesignModalProps {
 type FillStyle = 'colour' | 'gradient' | 'pattern' | 'image';
 type GradationType = 'horizontal' | 'vertical' | 'upDiagonal' | 'downDiagonal';
 
+// --- MODIFICATION: Added 'Dynamic' option ---
 const PREDEFINED_SIZES = [
+    { label: 'Dynamic (Browser Size)', value: 'dynamic' },
     { label: 'Custom', value: 'custom' },
     { label: 'VGA (640x480)', value: '640,480' },
     { label: 'SVGA (800x600)', value: '800,600' },
@@ -24,6 +26,7 @@ const PREDEFINED_SIZES = [
     { label: '4K UHD (3840x2160)', value: '3840,2160' },
     { label: 'DCI 4K (4096x2160)', value: '4096,2160' },
 ];
+// --- END MODIFICATION ---
 
 export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, onClose }) => {
     // --- Modal State ---
@@ -33,6 +36,9 @@ export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, on
     // --- Screen Size State ---
     const [width, setWidth] = useState(1920);
     const [height, setHeight] = useState(1080);
+    // --- MODIFICATION: Added preset state, default to 'dynamic' ---
+    const [preset, setPreset] = useState<string>('dynamic');
+    // --- END MODIFICATION ---
     const [fillStyle, setFillStyle] = useState<FillStyle>('colour');
 
     // --- Fill Colour States ---
@@ -134,13 +140,30 @@ export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, on
 
     if (!isOpen) return null;
 
+    // --- MODIFICATION: Updated logic for preset dropdown ---
     const handleSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const { value } = e.target;
-        if (value === 'custom') return;
-        const [newWidth, newHeight] = value.split(',').map(Number);
-        setWidth(newWidth);
-        setHeight(newHeight);
+        setPreset(value);
+
+        if (value !== 'custom' && value !== 'dynamic') {
+            const [newWidth, newHeight] = value.split(',').map(Number);
+            setWidth(newWidth);
+            setHeight(newHeight);
+        }
     };
+    
+    // --- MODIFICATION: Handlers to set preset to 'custom' on manual edit ---
+    const handleWidthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setWidth(Number(e.target.value));
+        setPreset('custom');
+    };
+    
+    const handleHeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setHeight(Number(e.target.value));
+        setPreset('custom');
+    };
+    // --- END MODIFICATION ---
+
 
     // --- Handlers for "Fill Colour" ---
     const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -344,12 +367,14 @@ export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, on
         setFillStyle(e.target.value as FillStyle);
     };
 
-    const getCurrentSizeValue = () => {
-        const matchingSize = PREDEFINED_SIZES.find(
-            s => s.value === `${width},${height}`
-        );
-        return matchingSize ? matchingSize.value : 'custom';
-    };
+    // --- MODIFICATION: Replaced 'getCurrentSizeValue' logic ---
+    // const getCurrentSizeValue = () => {
+    //     const matchingSize = PREDEFINED_SIZES.find(
+    //         s => s.value === `${width},${height}`
+    //     );
+    //     return matchingSize ? matchingSize.value : 'custom';
+    // };
+    // --- END MODIFICATION ---
 
     return (
         <>
@@ -377,21 +402,37 @@ export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, on
                         <div className="form-section">
                             <span className="section-title">Screen Size</span>
                             <div className="form-group-inline">
+                                {/* --- MODIFICATION: Added disabled and new onChange --- */}
                                 <div className="form-group">
                                     <label htmlFor="screenWidth">Width:</label>
-                                    <input id="screenWidth" type="number" value={width} onChange={(e) => setWidth(Number(e.target.value))} />
+                                    <input 
+                                        id="screenWidth" 
+                                        type="number" 
+                                        value={width} 
+                                        onChange={handleWidthChange} 
+                                        disabled={preset === 'dynamic'}
+                                    />
                                 </div>
                                 <div className="form-group">
                                     <label htmlFor="screenHeight">Height:</label>
-                                    <input id="screenHeight" type="number" value={height} onChange={(e) => setHeight(Number(e.target.value))} />
+                                    <input 
+                                        id="screenHeight" 
+                                        type="number" 
+                                        value={height} 
+                                        onChange={handleHeightChange} 
+                                        disabled={preset === 'dynamic'}
+                                    />
                                 </div>
+                                {/* --- END MODIFICATION --- */}
                                 <div className="form-group">
                                     <label htmlFor="screenPreset">Preset:</label>
+                                    {/* --- MODIFICATION: Use preset state for value --- */}
                                     <select
                                         id="screenPreset"
-                                        value={getCurrentSizeValue()}
+                                        value={preset}
                                         onChange={handleSizeChange}
                                     >
+                                    {/* --- END MODIFICATION --- */}
                                         {PREDEFINED_SIZES.map(size => (
                                             <option key={size.value} value={size.value}>
                                                 {size.label}
@@ -442,4 +483,3 @@ export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, on
         </>
     );
 };
-
