@@ -169,11 +169,12 @@ export const App: React.FC = () => {
     return (
         <SharedStateContext.Provider value={sharedStateValue}>
             <div className="ide-container">
-                {/* --- MODIFIED HERE (prop removed) --- */}
+                {/* --- MODIFIED HERE (prop added) --- */}
                 <MenuBar 
                     model={model} 
                     onToggleDock={onToggleDock} 
                     dockVisibility={dockVisibility} 
+                    onOpenScreenDesign={() => setIsScreenDesignModalOpen(true)} 
                 />
                 {/* --- END MODIFICATION --- */}
                 <Toolbar />

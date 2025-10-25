@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useRef } from 'react';
 import type { Model } from 'flexlayout-react';
 import { FileMenu } from '../menus/FileMenu';
@@ -17,9 +15,11 @@ interface MenuBarProps {
     model: Model;
     onToggleDock: (dockName: DockName) => void;
     dockVisibility: DockVisibility;
+    onOpenScreenDesign: () => void; // --- ADDED PROP ---
 }
 
-export const MenuBar: React.FC<MenuBarProps> = ({ model, onToggleDock, dockVisibility }) => {
+// --- MODIFIED PROPS ---
+export const MenuBar: React.FC<MenuBarProps> = ({ model, onToggleDock, dockVisibility, onOpenScreenDesign }) => {
     const [activeMenu, setActiveMenu] = useState<string | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -28,7 +28,9 @@ export const MenuBar: React.FC<MenuBarProps> = ({ model, onToggleDock, dockVisib
         { name: 'Edit', component: <EditMenu /> },
         { name: 'Search/Replace', component: <SearchReplaceMenu /> },
         { name: 'View', component: <ViewMenu model={model} onToggleDock={onToggleDock} dockVisibility={dockVisibility} /> },
-        { name: 'Screen', component: <ScreenMenu /> },
+        // --- MODIFIED HERE ---
+        { name: 'Screen', component: <ScreenMenu onOpenScreenDesign={onOpenScreenDesign} /> },
+        // --- END MODIFICATION ---
         { name: 'Common', component: <CommonMenu /> },
         { name: 'Figure', component: <FigureMenu /> },
         { name: 'Object', component: <ObjectMenu /> },
