@@ -5,9 +5,10 @@ interface TreeItemProps {
     icon: string;
     children?: React.ReactNode;
     defaultExpanded?: boolean;
+    onDoubleClick?: () => void; // --- ADDED PROP ---
 }
 
-export const TreeItem: React.FC<TreeItemProps> = ({ label, icon, children, defaultExpanded = false }) => {
+export const TreeItem: React.FC<TreeItemProps> = ({ label, icon, children, defaultExpanded = false, onDoubleClick }) => {
     const [isExpanded, setIsExpanded] = useState(defaultExpanded);
     const hasChildren = React.Children.count(children) > 0;
 
@@ -19,7 +20,14 @@ export const TreeItem: React.FC<TreeItemProps> = ({ label, icon, children, defau
 
     return (
         <li className="tree-item">
-            <div className="tree-node" onClick={handleToggle} style={{ cursor: hasChildren ? 'pointer' : 'default' }}>
+            {/* --- MODIFIED HERE --- */}
+            <div 
+                className="tree-node" 
+                onClick={handleToggle} 
+                onDoubleClick={onDoubleClick} // --- ADDED HANDLER ---
+                style={{ cursor: hasChildren || onDoubleClick ? 'pointer' : 'default' }}
+            >
+            {/* --- END MODIFICATION --- */}
                 <span className="tree-toggle">
                     {hasChildren && (
                         <span className="material-icons">

@@ -19,6 +19,7 @@ import { DataBrowserDock } from "../docks/DataBrowserDock";
 import { IPAddressDock } from "../docks/IPAddressDock";
 import { ControllerListDock } from "../docks/ControllerListDock";
 import { DataViewDock } from "../docks/DataViewDock";
+import { ScreenDesignModal } from "../modals/ScreenDesignModal"; // Import the modal
 
 interface SharedState {
     components: HmiComponent[];
@@ -83,13 +84,17 @@ export const App: React.FC = () => {
     const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
     const [coords, setCoords] = useState({ x: 0, y: 0 });
     const [model] = useState(() => Model.fromJson(defaultLayout));
+    const [isScreenDesignModalOpen, setIsScreenDesignModalOpen] = useState(false); // State lives here
 
     const factory = (node: TabNode) => {
         const component = node.getComponent();
         switch (component) {
             case "canvas": return <Canvas setCoords={setCoords} />;
             case "Project Tree": return <ProjectTreeDock />;
-            case "Screen Tree": return <ScreenTreeDock />;
+            // --- MODIFIED HERE ---
+            case "Screen Tree": 
+                return <ScreenTreeDock onOpenScreenDesign={() => setIsScreenDesignModalOpen(true)} />;
+            // --- END MODIFICATION ---
             case "System Tree": return <SystemTreeDock />;
             case "Property Tree": return <PropertyTreeDock />;
             case "Library": return <LibraryDock />;
@@ -164,7 +169,13 @@ export const App: React.FC = () => {
     return (
         <SharedStateContext.Provider value={sharedStateValue}>
             <div className="ide-container">
-                <MenuBar model={model} onToggleDock={onToggleDock} dockVisibility={dockVisibility} />
+                {/* --- MODIFIED HERE (prop removed) --- */}
+                <MenuBar 
+                    model={model} 
+                    onToggleDock={onToggleDock} 
+                    dockVisibility={dockVisibility} 
+                />
+                {/* --- END MODIFICATION --- */}
                 <Toolbar />
                 <div className="ide-body">
                     <DrawingToolbar />
@@ -173,6 +184,12 @@ export const App: React.FC = () => {
                     </div>
                 </div>
                 <StatusBar coords={coords} />
+                
+                {/* Modal is still rendered here */}
+                <ScreenDesignModal 
+                    isOpen={isScreenDesignModalOpen}
+                    onClose={() => setIsScreenDesignModalOpen(false)}
+                />
             </div>
         </SharedStateContext.Provider>
     );
