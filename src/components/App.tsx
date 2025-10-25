@@ -113,40 +113,46 @@ export const App: React.FC = () => {
         return { id: "border_bottom" };
     }, []);
 
+    const [dockVisibility, setDockVisibility] = useState<Record<DockName, boolean>>({
+        "Project Tree": true,
+        "Screen Tree": true,
+        "System Tree": true,
+        "Property Tree": true,
+        "Library": true,
+        "Screen Image List": true,
+        "Tag Search": true,
+        "Data Browser": true,
+        "IP Address": true,
+        "Controller List": true,
+        "Data View": true,
+    });
+
     const onToggleDock = useCallback((dockName: DockName) => {
-        try {
-            const existingNode = model.getNodeById(dockName);
-            
-            if (existingNode) {
-                // Remove the dock using the standard delete action
-                model.doAction(Actions.deleteTab(dockName));
-            } else {
-                // Get the target border for this dock
-                const { id: borderId } = getDockConfig(dockName);
-                const borderSet = model.getNodeById(borderId);
-                
-                if (borderSet) {
-                    // Create a standard tab node configuration
-                    const tabNode = {
-                        type: "tab",
-                        name: dockName,
-                        component: dockName,
-                        id: dockName
-                    };
-                    
-                    // Add the node to the specified border
-                    model.doAction(Actions.addNode(
-                        tabNode,
-                        borderId,
-                        DockLocation.CENTER,
-                        0
-                    ));
-                }
-            }
-        } catch (error) {
-            console.error('Error toggling dock:', error);
+        const isVisible = !dockVisibility[dockName];
+        setDockVisibility(prev => ({ ...prev, [dockName]: isVisible }));
+
+        if (isVisible) {
+            const { id: borderId } = getDockConfig(dockName);
+            model.doAction(Actions.addNode(
+                { type: "tab", name: dockName, component: dockName, id: dockName },
+                borderId,
+                DockLocation.CENTER,
+                0
+            ));
+        } else {
+            model.doAction(Actions.deleteTab(dockName));
         }
-    }, [model, getDockConfig]);
+    }, [dockVisibility, model, getDockConfig]);
+
+    const onAction = (action: any) => {
+        if (action.type === Actions.DELETE_TAB) {
+            const deletedTabId = action.data.node;
+            if (Object.keys(dockVisibility).includes(deletedTabId)) {
+                setDockVisibility(prev => ({ ...prev, [deletedTabId]: false }));
+            }
+        }
+        return action;
+    };
 
     const sharedStateValue = useMemo(() => ({
         components,
@@ -158,12 +164,12 @@ export const App: React.FC = () => {
     return (
         <SharedStateContext.Provider value={sharedStateValue}>
             <div className="ide-container">
-                <MenuBar model={model} onToggleDock={onToggleDock} />
+                <MenuBar model={model} onToggleDock={onToggleDock} dockVisibility={dockVisibility} />
                 <Toolbar />
                 <div className="ide-body">
                     <DrawingToolbar />
                     <div className="ide-main-content">
-                        <Layout model={model} factory={factory} />
+                        <Layout model={model} factory={factory} onAction={onAction} />
                     </div>
                 </div>
                 <StatusBar coords={coords} />

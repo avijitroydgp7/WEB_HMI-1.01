@@ -11,15 +11,15 @@ import { FigureMenu } from '../menus/FigureMenu';
 import { ScreenMenu } from '../menus/ScreenMenu';
 import { SearchReplaceMenu } from '../menus/SearchReplaceMenu';
 // Fix: Removed unused DockVisibility type.
-import type { DockName } from '../types/hmi';
+import type { DockName, DockVisibility } from '../types/hmi';
 
 interface MenuBarProps {
-    // Fix: Changed dockVisibility prop to model to match what ViewMenu needs.
     model: Model;
     onToggleDock: (dockName: DockName) => void;
+    dockVisibility: DockVisibility;
 }
 
-export const MenuBar: React.FC<MenuBarProps> = ({ model, onToggleDock }) => {
+export const MenuBar: React.FC<MenuBarProps> = ({ model, onToggleDock, dockVisibility }) => {
     const [activeMenu, setActiveMenu] = useState<string | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -27,8 +27,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ model, onToggleDock }) => {
         { name: 'File', component: <FileMenu /> },
         { name: 'Edit', component: <EditMenu /> },
         { name: 'Search/Replace', component: <SearchReplaceMenu /> },
-        // Fix: Passed the model prop to ViewMenu instead of dockVisibility.
-        { name: 'View', component: <ViewMenu model={model} onToggleDock={onToggleDock} /> },
+        { name: 'View', component: <ViewMenu model={model} onToggleDock={onToggleDock} dockVisibility={dockVisibility} /> },
         { name: 'Screen', component: <ScreenMenu /> },
         { name: 'Common', component: <CommonMenu /> },
         { name: 'Figure', component: <FigureMenu /> },
