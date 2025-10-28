@@ -87,3 +87,22 @@
 .menu-item .material-icons {
     margin-right: 8px;
 }
+
+
+/* --- ADDED FOR CONTEXT MENU --- */
+.context-menu {
+  position: fixed; /* Use fixed positioning to place relative to viewport */
+  background-color: var(--menu-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 8px var(--menu-shadow);
+  padding: 4px 0;
+  z-index: 2000; /* Ensure it's above other elements */
+  min-width: 200px;
+  border-radius: 3px;
+}
+
+/* Use the same .menu-item style for context menu items */
+.context-menu .menu-item {
+  /* Styles are inherited from .menu-item */
+}
+/* --- END ADDITION --- */

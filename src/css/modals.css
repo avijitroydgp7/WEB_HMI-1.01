@@ -34,6 +34,10 @@
 .modal-content-small {
   max-width: 550px;
 }
+/* --- ADDED: Class for BaseScreenModal --- */
+.modal-content-medium {
+  max-width: 500px;
+}
 
 .modal-header {
   display: flex;
@@ -59,6 +63,12 @@
   overflow-y: auto;
 }
 
+.form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px; /* --- ADDED gap for items within section --- */
+}
+
 .form-section .section-title {
   display: block;
   margin-bottom: 12px;
@@ -77,37 +87,73 @@
   align-items: center;
   gap: 8px;
 }
+/* --- ADDED: Vertical form group --- */
+.form-group.vertical {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.form-group.vertical label {
+  width: 100%;
+}
+.form-group.vertical input,
+.form-group.vertical textarea {
+  width: 100%;
+  box-sizing: border-box; /* Ensure padding doesn't break layout */
+}
+/* --- END ADDITION --- */
+
 
 .form-group label {
   white-space: nowrap;
+  flex-shrink: 0; /* --- ADDED: Prevent label from shrinking --- */
 }
 
 .form-group input[type="number"],
+.form-group input[type="text"], /* --- ADDED text input --- */
+.form-group textarea, /* --- ADDED textarea --- */
 .form-group select {
   background-color: var(--bg-color);
   border: 1px solid var(--border-color);
   color: var(--text-color);
   padding: 6px;
   border-radius: 3px;
+  flex-grow: 1; /* --- ADDED: Allow input to fill space --- */
+  min-width: 50px; /* --- ADDED: Prevent over-shrinking --- */
 }
+
+/* --- ADDED: Textarea specific styles --- */
+.form-group textarea {
+    height: 80px;
+    resize: vertical;
+    font-family: var(--font-family);
+    font-size: 13px;
+}
+.char-counter {
+    font-size: 12px;
+    color: var(--text-color-darker);
+    text-align: right;
+    width: 100%;
+    margin-top: -4px;
+}
+/* --- END ADDITION --- */
+
 
 .form-group input[type="number"] {
   width: 100px;
-  /* --- ADDITION: Hide Firefox spinner --- */
+  flex-grow: 0; /* --- OVERRIDE: Don't grow number inputs by default --- */
   -moz-appearance: textfield;
 }
 
-/* --- ADDITION: Hide Webkit/Chrome spinner --- */
 .form-group input[type="number"]::-webkit-inner-spin-button,
 .form-group input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
-/* --- END ADDITION --- */
-
 
 .form-group select {
   min-width: 150px;
+  flex-grow: 0; /* --- OVERRIDE: Don't grow selects by default --- */
 }
 
 
@@ -164,7 +210,7 @@
     align-items: stretch; /* Allow children to take full width */
 }
 
-
+/* ... (color swatch styles remain the same) ... */
 .color-swatch-container {
   position: relative;
   width: 200px;
@@ -174,18 +220,13 @@
     width: 100px;
     height: 30px;
 }
-
-/* Container for the fill preview swatch + its input */
 .fill-preview-input-container {
     position: relative;
     width: 100%;
 }
-/* Make the preview swatch clickable */
 .fill-preview-input-container .fill-preview-swatch {
     cursor: pointer;
 }
-
-
 .color-swatch {
   position: relative;
   border: 1px solid var(--border-color);
@@ -213,7 +254,6 @@
 .color-swatch-container:hover .color-swatch {
   border-color: var(--accent-color);
 }
-
 .color-swatch-color {
   position: absolute;
   top: 0;
@@ -223,7 +263,6 @@
   border-radius: 2px;
   z-index: 1;
 }
-
 .color-swatch-content {
   position: relative;
   z-index: 2;
@@ -233,7 +272,6 @@
 .color-swatch-container.small .color-swatch-content {
     font-size: 0.75em;
 }
-
 .color-swatch span {
   display: block;
 }
@@ -245,8 +283,6 @@
 .color-swatch-container.small .color-swatch .color-swatch-hex {
     font-size: 0.9em;
 }
-
-
 .color-input-overlay {
   position: absolute;
   top: 0;
@@ -259,9 +295,6 @@
   padding: 0;
   z-index: 3;
 }
-
-
-/* --- Opacity Slider styles --- */
 .opacity-slider-group {
   display: flex;
   align-items: center;
@@ -270,10 +303,9 @@
   max-width: 300px;
 }
 .fill-content-area-column .opacity-slider-group {
-    width: 100%; /* Make slider take full width inside fill area */
+    width: 100%; 
     max-width: 400px;
 }
-
 .opacity-slider-group label {
   white-space: nowrap;
 }
@@ -286,8 +318,6 @@
   text-align: right;
   font-family: monospace;
 }
-
-/* --- Fill Preview Swatch (for Gradient/Pattern/Image) --- */
 .fill-preview-swatch {
     position: relative;
     width: 100%;
@@ -325,6 +355,62 @@
     z-index: 2;
 }
 
+/* --- ADDED: Styles for BaseScreenModal --- */
+.modal-error {
+    color: #ff9e80; /* A light, noticeable red/orange */
+    font-size: 13px;
+    font-weight: bold;
+    text-align: center;
+    background-color: rgba(255, 158, 128, 0.1);
+    border: 1px solid rgba(255, 158, 128, 0.5);
+    border-radius: 3px;
+    padding: 8px;
+    margin-top: -10px;
+    margin-bottom: -10px;
+}
+
+.form-fieldset {
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    padding: 12px 16px;
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.form-fieldset legend {
+    font-weight: bold;
+    padding: 0 5px;
+    margin-left: 5px;
+    color: var(--text-color);
+}
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+.checkbox-group input[type="checkbox"] {
+    accent-color: var(--accent-color);
+    cursor: pointer;
+}
+.checkbox-group label {
+    font-weight: normal;
+    cursor: pointer;
+    user-select: none;
+}
+.design-set-display {
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    color: var(--text-color-darker);
+    padding: 6px 10px;
+    border-radius: 3px;
+    text-align: center;
+    cursor: not-allowed;
+    font-size: 12px;
+}
+/* --- END ADDITION --- */
+
 
 .modal-footer {
   display: flex;
@@ -332,7 +418,6 @@
   gap: 12px;
   padding: 12px 16px;
   border-top: 1px solid var(--border-color);
-  /* Make footer sticky at the bottom, prevent it from scrolling */
   margin-top: auto; 
 }
 
@@ -359,7 +444,6 @@
 /* --- Media Queries for stacking content on small screens --- */
 @media (max-width: 768px) {
   .form-group-inline {
-    /* Stack form groups vertically on small screens */
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
@@ -367,16 +451,14 @@
 
   .form-group-inline .form-group {
     width: 100%;
-    /* Aligns label and input on opposite ends */
     justify-content: space-between;
   }
 
   .form-group-inline .form-group select {
-    min-width: 100px; /* Allow select to shrink */
+    min-width: 100px;
   }
 
   .radio-group {
-    /* Stack radio buttons vertically */
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;
@@ -385,7 +467,19 @@
 
 @media (max-width: 480px) {
   .modal-body {
-    /* Reduce padding on very small screens */
     padding: 12px;
+  }
+  /* --- ADDED: Make form groups in modal body stack sooner --- */
+  .form-group {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  .form-group label {
+    width: 100%;
+  }
+  .form-group input {
+    width: 100%;
+    box-sizing: border-box;
   }
 }

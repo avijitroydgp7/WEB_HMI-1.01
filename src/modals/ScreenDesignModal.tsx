@@ -2,16 +2,17 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { hexToRgba } from '../utils/colorUtils';
 import { GradientModal, getGradientStyle } from './GradientModal';
 import { PatternModal, getPatternStyle, PATTERNS } from './PatternModal';
+// --- ADDED IMPORTS ---
+import type { ScreenDesign, FillStyle, GradationType, ScreenSizePreset } from '../types/hmi';
+import { DEFAULT_SCREEN_DESIGN } from '../components/App';
 
 interface ScreenDesignModalProps {
     isOpen: boolean;
     onClose: () => void;
+    onSave: (design: ScreenDesign) => void; // --- ADDED: Save handler
+    initialDesign: ScreenDesign;             // --- ADDED: Initial state prop
 }
 
-type FillStyle = 'colour' | 'gradient' | 'pattern' | 'image';
-type GradationType = 'horizontal' | 'vertical' | 'upDiagonal' | 'downDiagonal';
-
-// --- MODIFICATION: Added 'Dynamic' option ---
 const PREDEFINED_SIZES = [
     { label: 'Dynamic (Browser Size)', value: 'dynamic' },
     { label: 'Custom', value: 'custom' },
@@ -26,41 +27,23 @@ const PREDEFINED_SIZES = [
     { label: '4K UHD (3840x2160)', value: '3840,2160' },
     { label: 'DCI 4K (4096x2160)', value: '4096,2160' },
 ];
-// --- END MODIFICATION ---
 
-export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, onClose }) => {
+export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, onClose, onSave, initialDesign }) => {
     // --- Modal State ---
     const [isGradientModalOpen, setIsGradientModalOpen] = useState(false);
     const [isPatternModalOpen, setIsPatternModalOpen] = useState(false);
 
-    // --- Screen Size State ---
-    const [width, setWidth] = useState(1920);
-    const [height, setHeight] = useState(1080);
-    // --- MODIFICATION: Added preset state, default to 'dynamic' ---
-    const [preset, setPreset] = useState<string>('dynamic');
-    // --- END MODIFICATION ---
-    const [fillStyle, setFillStyle] = useState<FillStyle>('colour');
+    // --- REFACTORED STATE: Use a single 'design' object for the draft ---
+    const [design, setDesign] = useState<ScreenDesign>(initialDesign || DEFAULT_SCREEN_DESIGN);
+    
+    // --- Effect to reset draft state when modal is opened ---
+    useEffect(() => {
+        if (isOpen) {
+            setDesign(initialDesign || DEFAULT_SCREEN_DESIGN);
+        }
+    }, [isOpen, initialDesign]);
+    // --- END REFACTOR ---
 
-    // --- Fill Colour States ---
-    const [fillColor, setFillColor] = useState('#F0F0F0');
-    const [colorTransparency, setColorTransparency] = useState(0);
-
-    // --- Gradient States ---
-    const [gradientColor1, setGradientColor1] = useState('#F0F0F0');
-    const [gradientColor2, setGradientColor2] = useState('#667788');
-    const [gradientTransparency, setGradientTransparency] = useState(0);
-    const [gradationType, setGradationType] = useState<GradationType>('horizontal');
-    const [gradientVariation, setGradientVariation] = useState(0);
-
-    // --- Pattern States ---
-    const [patternForegroundColor, setPatternForegroundColor] = useState('#000000');
-    const [patternBackgroundColor, setPatternBackgroundColor] = useState('#FFFFFF');
-    const [patternTransparency, setPatternTransparency] = useState(0);
-    const [selectedPatternIndex, setSelectedPatternIndex] = useState(0);
-
-    // --- Image States ---
-    const [imageUrl, setImageUrl] = useState<string | null>(null);
-    const [imageTransparency, setImageTransparency] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // --- DRAG STATE ---
@@ -69,46 +52,33 @@ export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, on
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const modalRef = useRef<HTMLDivElement>(null);
 
-    // --- Reusable centering function ---
     const centerModal = useCallback(() => {
         if (modalRef.current) {
             const { innerWidth, innerHeight } = window;
             const { offsetWidth, offsetHeight } = modalRef.current;
-            
             const x = Math.max(0, (innerWidth - offsetWidth) / 2);
             const y = Math.max(0, (innerHeight - offsetHeight) / 2);
-            
             setPosition({ x, y });
         }
     }, []);
 
-    // --- EFFECT TO CENTER MODAL AND ADD KEYDOWN LISTENER ---
     useEffect(() => {
         if (isOpen) {
             centerModal();
-            
             const handleKeyDown = (e: KeyboardEvent) => {
                 if (e.key === 'Escape') {
-                    // --- MODIFIED: Only close if no sub-modals are open ---
-                    if (isGradientModalOpen || isPatternModalOpen) {
-                        // A sub-modal is open, let its listener (in DraggableModal) handle 'Escape'
-                        return;
-                    }
-                    // --- END MODIFICATION ---
+                    if (isGradientModalOpen || isPatternModalOpen) return;
                     onClose();
                 }
             };
-            
             window.addEventListener('resize', centerModal);
-            document.addEventListener('keydown', handleKeyDown); // Add listener
-
-            // Cleanup listener
+            document.addEventListener('keydown', handleKeyDown);
             return () => {
                 window.removeEventListener('resize', centerModal);
-                document.removeEventListener('keydown', handleKeyDown); // Remove listener
+                document.removeEventListener('keydown', handleKeyDown);
             };
         }
-    }, [isOpen, centerModal, onClose, isGradientModalOpen, isPatternModalOpen]); // --- ADDED dependencies ---
+    }, [isOpen, centerModal, onClose, isGradientModalOpen, isPatternModalOpen]);
 
     // --- DRAG HANDLERS ---
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -119,86 +89,70 @@ export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, on
         }
         e.preventDefault();
         setIsDragging(true);
-        setDragStart({
-            x: e.clientX - position.x,
-            y: e.clientY - position.y,
-        });
+        setDragStart({ x: e.clientX - position.x, y: e.clientY - position.y });
     };
 
     const handleMouseMove = (e: React.MouseEvent) => {
         if (!isDragging) return;
         e.preventDefault();
-        setPosition({
-            x: e.clientX - dragStart.x,
-            y: e.clientY - dragStart.y,
-        });
+        setPosition({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
     };
 
     const handleMouseUp = () => {
         setIsDragging(false);
     };
 
-    if (!isOpen) return null;
-
-    // --- MODIFICATION: Updated logic for preset dropdown ---
+    // --- UPDATED: Size Change Handlers ---
     const handleSizeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const { value } = e.target;
-        setPreset(value);
-
-        if (value !== 'custom' && value !== 'dynamic') {
+        const value = e.target.value as ScreenSizePreset;
+        if (value === 'custom' || value === 'dynamic') {
+            setDesign(d => ({ ...d, preset: value }));
+        } else {
             const [newWidth, newHeight] = value.split(',').map(Number);
-            setWidth(newWidth);
-            setHeight(newHeight);
+            setDesign(d => ({ ...d, preset: value, width: newWidth, height: newHeight }));
         }
     };
     
-    // --- MODIFICATION: Handlers to set preset to 'custom' on manual edit ---
     const handleWidthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setWidth(Number(e.target.value));
-        setPreset('custom');
+        setDesign(d => ({ ...d, width: Number(e.target.value), preset: 'custom' }));
     };
     
     const handleHeightChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setHeight(Number(e.target.value));
-        setPreset('custom');
+        setDesign(d => ({ ...d, height: Number(e.target.value), preset: 'custom' }));
     };
-    // --- END MODIFICATION ---
+    // --- END UPDATES ---
 
 
-    // --- Handlers for "Fill Colour" ---
+    // --- UPDATED: Fill Colour Handlers ---
     const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFillColor(e.target.value);
+        setDesign(d => ({ ...d, colour: { ...d.colour, color: e.target.value } }));
     };
     const handleColorTransparencyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setColorTransparency(Number(e.target.value));
+        setDesign(d => ({ ...d, colour: { ...d.colour, transparency: Number(e.target.value) } }));
     };
+    // --- END UPDATES ---
 
-    // --- Handlers for "Gradient Colour" ---
-    const handleGradientSave = (
-        c1: string, c2: string, type: GradationType, variation: number
-    ) => {
-        setGradientColor1(c1);
-        setGradientColor2(c2);
-        setGradationType(type);
-        setGradientVariation(variation);
+    // --- UPDATED: Gradient Handlers ---
+    const handleGradientSave = (c1: string, c2: string, type: GradationType, variation: number) => {
+        setDesign(d => ({ ...d, gradient: { ...d.gradient, color1: c1, color2: c2, gradationType: type, variation: variation } }));
     };
     const handleGradientTransparencyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setGradientTransparency(Number(e.target.value));
+        setDesign(d => ({ ...d, gradient: { ...d.gradient, transparency: Number(e.target.value) } }));
     };
+    // --- END UPDATES ---
 
-    // --- Handlers for "Fill Pattern" ---
+    // --- UPDATED: Pattern Handlers ---
     const handlePatternSave = (fg: string, bg: string, patternIndex: number) => {
-        setPatternForegroundColor(fg);
-        setPatternBackgroundColor(bg);
-        setSelectedPatternIndex(patternIndex);
+        setDesign(d => ({ ...d, pattern: { ...d.pattern, foregroundColor: fg, backgroundColor: bg, patternIndex: patternIndex } }));
     };
     const handlePatternTransparencyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setPatternTransparency(Number(e.target.value));
+        setDesign(d => ({ ...d, pattern: { ...d.pattern, transparency: Number(e.target.value) } }));
     };
+    // --- END UPDATES ---
 
-    // --- Handlers for "Fill Image" ---
+    // --- UPDATED: Image Handlers ---
     const handleImageTransparencyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setImageTransparency(Number(e.target.value));
+        setDesign(d => ({ ...d, image: { ...d.image, transparency: Number(e.target.value) } }));
     };
     const handleImageBrowseClick = () => {
         fileInputRef.current?.click();
@@ -208,56 +162,56 @@ export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, on
         if (file) {
             const reader = new FileReader();
             reader.onloadend = () => {
-                setImageUrl(reader.result as string);
+                setDesign(d => ({ ...d, image: { ...d.image, url: reader.result as string } }));
             };
             reader.readAsDataURL(file);
         }
     };
-
+    // --- END UPDATES ---
 
     const renderFillContent = () => {
-        switch (fillStyle) {
+        switch (design.fillStyle) {
             case 'colour':
-                const colorOpacity = 1 - (colorTransparency / 100);
+                const { color, transparency } = design.colour;
+                const colorOpacity = 1 - (transparency / 100);
                 return (
                     <div className="fill-content-area-column wide-content">
                         <div className="fill-preview-input-container">
                             <div
                                 className="fill-preview-swatch"
-                                style={{ backgroundColor: hexToRgba(fillColor, colorOpacity) }}
+                                style={{ backgroundColor: hexToRgba(color, colorOpacity) }}
                             >
                                 <span>Click to change colour</span>
                             </div>
                             <input
                                 type="color"
-                                value={fillColor}
+                                value={color}
                                 onChange={handleColorChange}
                                 className="color-input-overlay"
                             />
                         </div>
-
                         <div className="opacity-slider-group">
                             <label htmlFor="transparencySlider">Transparency:</label>
                             <input
                                 id="transparencySlider"
                                 type="range" min="0" max="100" step="1"
-                                value={colorTransparency}
+                                value={transparency}
                                 onChange={handleColorTransparencyChange}
                             />
-                            <span>{colorTransparency}%</span>
+                            <span>{transparency}%</span>
                         </div>
                     </div>
                 );
             
             case 'gradient':
-                const gradientOpacity = 1 - (gradientTransparency / 100);
+                const { color1, color2, transparency: gradTrans, gradationType, variation } = design.gradient;
+                const gradientOpacity = 1 - (gradTrans / 100);
                 const gradPreview = getGradientStyle(
-                    hexToRgba(gradientColor1, gradientOpacity),
-                    hexToRgba(gradientColor2, gradientOpacity),
+                    hexToRgba(color1, gradientOpacity),
+                    hexToRgba(color2, gradientOpacity),
                     gradationType,
-                    gradientVariation
+                    variation
                 );
-
                 return (
                     <div className="fill-content-area-column wide-content">
                         <div
@@ -272,25 +226,19 @@ export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, on
                             <input
                                 id="gradientTransparencySlider"
                                 type="range" min="0" max="100" step="1"
-                                value={gradientTransparency}
+                                value={gradTrans}
                                 onChange={handleGradientTransparencyChange}
                             />
-                            <span>{gradientTransparency}%</span>
+                            <span>{gradTrans}%</span>
                         </div>
                     </div>
                 );
 
             case 'pattern':
-                const patternOpacity = 1 - (patternTransparency / 100);
-                const patternId = PATTERNS[selectedPatternIndex];
-                
-                const patternStyle = getPatternStyle(
-                    patternForegroundColor, 
-                    patternBackgroundColor, 
-                    patternId,
-                    patternOpacity
-                );
-
+                const { foregroundColor, backgroundColor, transparency: patTrans, patternIndex } = design.pattern;
+                const patternOpacity = 1 - (patTrans / 100);
+                const patternId = PATTERNS[patternIndex];
+                const patternStyle = getPatternStyle(foregroundColor, backgroundColor, patternId, patternOpacity);
                 return (
                     <div className="fill-content-area-column wide-content">
                         <div
@@ -308,16 +256,17 @@ export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, on
                             <input
                                 id="patternTransparencySlider"
                                 type="range" min="0" max="100" step="1"
-                                value={patternTransparency}
+                                value={patTrans}
                                 onChange={handlePatternTransparencyChange}
                             />
-                            <span>{patternTransparency}%</span>
+                            <span>{patTrans}%</span>
                         </div>
                     </div>
                 );
 
             case 'image':
-                 const imageOpacity = 1 - (imageTransparency / 100);
+                 const { url, transparency: imgTrans } = design.image;
+                 const imageOpacity = 1 - (imgTrans / 100);
                 return (
                     <div className="fill-content-area-column wide-content">
                         <input
@@ -331,11 +280,11 @@ export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, on
                             className="fill-preview-swatch checkerboard"
                             onClick={handleImageBrowseClick}
                         >
-                            {imageUrl ? (
+                            {url ? (
                                 <div
                                     className="fill-preview-swatch-overlay"
                                     style={{
-                                        backgroundImage: `url(${imageUrl})`,
+                                        backgroundImage: `url(${url})`,
                                         backgroundSize: 'contain',
                                         backgroundRepeat: 'no-repeat',
                                         backgroundPosition: 'center',
@@ -351,10 +300,10 @@ export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, on
                             <input
                                 id="imageTransparencySlider"
                                 type="range" min="0" max="100" step="1"
-                                value={imageTransparency}
+                                value={imgTrans}
                                 onChange={handleImageTransparencyChange}
                             />
-                            <span>{imageTransparency}%</span>
+                            <span>{imgTrans}%</span>
                         </div>
                     </div>
                 );
@@ -364,17 +313,10 @@ export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, on
     };
 
     const handleRadioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setFillStyle(e.target.value as FillStyle);
+        setDesign(d => ({ ...d, fillStyle: e.target.value as FillStyle }));
     };
 
-    // --- MODIFICATION: Replaced 'getCurrentSizeValue' logic ---
-    // const getCurrentSizeValue = () => {
-    //     const matchingSize = PREDEFINED_SIZES.find(
-    //         s => s.value === `${width},${height}`
-    //     );
-    //     return matchingSize ? matchingSize.value : 'custom';
-    // };
-    // --- END MODIFICATION ---
+    if (!isOpen) return null;
 
     return (
         <>
@@ -402,15 +344,14 @@ export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, on
                         <div className="form-section">
                             <span className="section-title">Screen Size</span>
                             <div className="form-group-inline">
-                                {/* --- MODIFICATION: Added disabled and new onChange --- */}
                                 <div className="form-group">
                                     <label htmlFor="screenWidth">Width:</label>
                                     <input 
                                         id="screenWidth" 
                                         type="number" 
-                                        value={width} 
+                                        value={design.width} 
                                         onChange={handleWidthChange} 
-                                        disabled={preset === 'dynamic'}
+                                        disabled={design.preset === 'dynamic'}
                                     />
                                 </div>
                                 <div className="form-group">
@@ -418,21 +359,18 @@ export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, on
                                     <input 
                                         id="screenHeight" 
                                         type="number" 
-                                        value={height} 
+                                        value={design.height} 
                                         onChange={handleHeightChange} 
-                                        disabled={preset === 'dynamic'}
+                                        disabled={design.preset === 'dynamic'}
                                     />
                                 </div>
-                                {/* --- END MODIFICATION --- */}
                                 <div className="form-group">
                                     <label htmlFor="screenPreset">Preset:</label>
-                                    {/* --- MODIFICATION: Use preset state for value --- */}
                                     <select
                                         id="screenPreset"
-                                        value={preset}
+                                        value={design.preset}
                                         onChange={handleSizeChange}
                                     >
-                                    {/* --- END MODIFICATION --- */}
                                         {PREDEFINED_SIZES.map(size => (
                                             <option key={size.value} value={size.value}>
                                                 {size.label}
@@ -446,39 +384,40 @@ export const ScreenDesignModal: React.FC<ScreenDesignModalProps> = ({ isOpen, on
                         <div className="form-section">
                             <span className="section-title">Fill Style</span>
                             <div className="radio-group">
-                                <label><input type="radio" name="fillStyle" value="colour" checked={fillStyle === 'colour'} onChange={handleRadioChange} /> Fill Colour</label>
-                                <label><input type="radio" name="fillStyle" value="gradient" checked={fillStyle === 'gradient'} onChange={handleRadioChange} /> Gradient Colour</label>
-                                <label><input type="radio" name="fillStyle" value="pattern" checked={fillStyle === 'pattern'} onChange={handleRadioChange} /> Fill Pattern</label>
-                                <label><input type="radio" name="fillStyle" value="image" checked={fillStyle === 'image'} onChange={handleRadioChange} /> Fill Image</label>
+                                <label><input type="radio" name="fillStyle" value="colour" checked={design.fillStyle === 'colour'} onChange={handleRadioChange} /> Fill Colour</label>
+                                <label><input type="radio" name="fillStyle" value="gradient" checked={design.fillStyle === 'gradient'} onChange={handleRadioChange} /> Gradient Colour</label>
+                                <label><input type="radio" name="fillStyle" value="pattern" checked={design.fillStyle === 'pattern'} onChange={handleRadioChange} /> Fill Pattern</label>
+                                <label><input type="radio" name="fillStyle" value="image" checked={design.fillStyle === 'image'} onChange={handleRadioChange} /> Fill Image</label>
                             </div>
                             {renderFillContent()}
                         </div>
                     </div>
                     <div className="modal-footer">
-                        <button className="btn btn-primary" onClick={onClose}>OK</button>
+                        {/* --- MODIFIED: "OK" button now calls onSave --- */}
+                        <button className="btn btn-primary" onClick={() => onSave(design)}>OK</button>
                         <button className="btn btn-secondary" onClick={onClose}>Cancel</button>
                     </div>
                 </div>
             </div>
 
-            {/* --- Sub-modals are rendered here, outside the main modal structure --- */}
+            {/* --- Sub-modals --- */}
             <GradientModal
                 isOpen={isGradientModalOpen}
                 onClose={() => setIsGradientModalOpen(false)}
                 onSave={handleGradientSave}
-                initialColor1={gradientColor1}
-                initialColor2={gradientColor2}
-                initialGradationType={gradationType}
-                initialVariation={gradientVariation}
+                initialColor1={design.gradient.color1}
+                initialColor2={design.gradient.color2}
+                initialGradationType={design.gradient.gradationType}
+                initialVariation={design.gradient.variation}
             />
             
             <PatternModal
                 isOpen={isPatternModalOpen}
                 onClose={() => setIsPatternModalOpen(false)}
                 onSave={handlePatternSave}
-                initialForegroundColor={patternForegroundColor}
-                initialBackgroundColor={patternBackgroundColor}
-                initialPatternIndex={selectedPatternIndex}
+                initialForegroundColor={design.pattern.foregroundColor}
+                initialBackgroundColor={design.pattern.backgroundColor}
+                initialPatternIndex={design.pattern.patternIndex}
             />
         </>
     );

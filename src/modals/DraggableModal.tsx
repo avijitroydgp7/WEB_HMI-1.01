@@ -6,6 +6,7 @@ interface DraggableModalProps {
     title: string;
     children: React.ReactNode;
     footer: React.ReactNode;
+    className?: string; // --- ADDED PROP ---
 }
 
 /**
@@ -17,6 +18,7 @@ export const DraggableModal: React.FC<DraggableModalProps> = ({
     title,
     children,
     footer,
+    className, // --- ADDED PROP ---
 }) => {
     const [isDragging, setIsDragging] = useState(false);
     const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -102,7 +104,8 @@ export const DraggableModal: React.FC<DraggableModalProps> = ({
             }}
         >
             <div
-                className="modal-content modal-content-small"
+                // --- MODIFIED HERE: Use dynamic class, default to 'modal-content-small' ---
+                className={`modal-content ${className || 'modal-content-small'}`}
                 ref={modalRef}
                 style={{
                     transform: `translate(${position.x}px, ${position.y}px)`,

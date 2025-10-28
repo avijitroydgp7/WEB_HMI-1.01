@@ -1,3 +1,52 @@
+// --- NEW TYPES ---
+export type FillStyle = 'colour' | 'gradient' | 'pattern' | 'image';
+export type GradationType = 'horizontal' | 'vertical' | 'upDiagonal' | 'downDiagonal';
+export type ScreenSizePreset = 'dynamic' | 'custom' | string; // string for "width,height"
+
+export interface GradientSettings {
+  color1: string;
+  color2: string;
+  transparency: number;
+  gradationType: GradationType;
+  variation: number;
+}
+
+export interface PatternSettings {
+  foregroundColor: string;
+  backgroundColor: string;
+  transparency: number;
+  patternIndex: number;
+}
+
+export interface ImageSettings {
+  url: string | null;
+  transparency: number;
+}
+
+export interface ScreenDesign {
+  width: number;
+  height: number;
+  preset: ScreenSizePreset;
+  fillStyle: FillStyle;
+  
+  // Fill settings
+  colour: { color: string, transparency: number };
+  gradient: GradientSettings;
+  pattern: PatternSettings;
+  image: ImageSettings;
+}
+
+// --- MODIFIED HmiBaseScreen ---
+export interface HmiBaseScreen {
+  id: string; // Unique ID (e.g., from Date.now())
+  screenNumber: number;
+  screenName: string;
+  description: string;
+  security: number;
+  individualDesign: boolean;
+  design?: ScreenDesign; // Optional individual design
+}
+// --- END MODIFICATION ---
 
 export type HmiComponentType = 'button' | 'label' | 'indicator';
 

@@ -1,13 +1,103 @@
 import React, { DragEvent, MouseEvent as ReactMouseEvent, useContext } from 'react';
 import { HmiComponentRenderer } from './HmiComponentRenderer';
 import { SharedStateContext } from './App';
-import type { HmiComponentType, HmiButtonComponent, HmiLabelComponent, HmiIndicatorComponent, HmiComponent } from '../types/hmi';
+// --- MODIFIED IMPORTS ---
+import type { HmiComponentType, HmiButtonComponent, HmiLabelComponent, HmiIndicatorComponent, HmiComponent, ScreenDesign } from '../types/hmi';
+import { getGradientStyle } from '../modals/GradientModal';
+import { getPatternStyle, PATTERNS } from '../modals/PatternModal';
+import { hexToRgba } from '../utils/colorUtils';
+// --- END MODIFICATION ---
 
 interface CanvasProps {
     setCoords: (coords: { x: number, y: number }) => void;
+    design: ScreenDesign; // --- ADDED PROP ---
 }
 
-export const Canvas: React.FC<CanvasProps> = ({ setCoords }) => {
+// --- ADDED HELPER FUNCTION ---
+const getCanvasStyle = (design: ScreenDesign): React.CSSProperties => {
+    const style: React.CSSProperties = {};
+
+    // 1. Set Size
+    if (design.preset === 'dynamic') {
+        style.width = '100%';
+        style.height = '100%';
+    } else {
+        style.width = `${design.width}px`;
+        style.height = `${design.height}px`;
+        // Add a visible border if not dynamic
+        style.border = '1px solid var(--border-color)';
+        style.margin = '20px'; // Add margin so it's not in the corner
+    }
+
+    // 2. Set Background
+    switch (design.fillStyle) {
+        case 'colour':
+            const { color, transparency } = design.colour;
+            style.backgroundColor = hexToRgba(color, 1 - (transparency / 100));
+            break;
+        
+        case 'gradient':
+            const { color1, color2, transparency: gradTrans, gradationType, variation } = design.gradient;
+            const opacity = 1 - (gradTrans / 100);
+            style.background = getGradientStyle(
+                hexToRgba(color1, opacity),
+                hexToRgba(color2, opacity),
+                gradationType,
+                variation
+            );
+            break;
+
+        case 'pattern':
+            const { foregroundColor, backgroundColor, transparency: patTrans, patternIndex } = design.pattern;
+            const patternOpacity = 1 - (patTrans / 100);
+            const patternId = PATTERNS[patternIndex];
+            // getPatternStyle returns a style object, so we merge it
+            Object.assign(style, getPatternStyle(
+                foregroundColor, 
+                backgroundColor, 
+                patternId,
+                patternOpacity
+            ));
+            break;
+
+        case 'image':
+            const { url, transparency: imgTrans } = design.image;
+            const imageOpacity = 1 - (imgTrans / 100);
+            if (url) {
+                style.backgroundImage = `url(${url})`;
+                style.backgroundSize = 'cover'; // Or 'contain', '100% 100%', etc.
+                style.backgroundPosition = 'center';
+                style.backgroundRepeat = 'no-repeat';
+                // We'd need an overlay to apply opacity, but for simplicity:
+                // This will make the whole canvas transparent, which is not ideal
+                // A better solution would be a ::before pseudo-element
+                style.opacity = imageOpacity; 
+            }
+            break;
+    }
+    
+    // Add grid background image
+    const grid = 'linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px)';
+    
+    // Combine grid with existing background
+    if (style.background || style.backgroundColor) {
+         if (style.background) {
+            style.background = `${grid}, ${style.background}`;
+         } else {
+             style.background = grid;
+             // backgroundColor is already set
+         }
+    } else {
+        style.background = grid;
+    }
+    style.backgroundSize = '20px 20px';
+
+    return style;
+};
+// --- END HELPER FUNCTION ---
+
+
+export const Canvas: React.FC<CanvasProps> = ({ setCoords, design }) => {
     const context = useContext(SharedStateContext);
     if (!context) return <div>Loading...</div>;
 
@@ -70,6 +160,8 @@ export const Canvas: React.FC<CanvasProps> = ({ setCoords }) => {
     return (
         <div 
             className="canvas" 
+            // --- MODIFIED: Apply dynamic style ---
+            style={getCanvasStyle(design)}
             onDragOver={handleDragOver} 
             onDrop={handleDrop} 
             onMouseDown={handleCanvasMouseDown}
