@@ -1,6 +1,5 @@
-// --- No change to imports ---
 import React, { useState, useCallback, createContext, useMemo, useRef, useEffect } from "react";
-import { Layout, Model, TabNode, Actions, DockLocation } from "flexlayout-react";
+import { Layout, Model, TabNode, Actions, DockLocation, IJsonModel } from "flexlayout-react";
 import type { HmiComponent, DockName, HmiBaseScreen, ScreenDesign } from "../types/hmi";
 
 import { MenuBar } from "./MenuBar";
@@ -21,9 +20,9 @@ import { IPAddressDock } from "../docks/IPAddressDock";
 import { ControllerListDock } from "../docks/ControllerListDock";
 import { DataViewDock } from "../docks/DataViewDock";
 import { ScreenDesignModal } from "../modals/ScreenDesignModal";
-import { BaseScreenModal } from "../modals/BaseScreenModal"; 
+import { BaseScreenModal } from "../modals/BaseScreenModal";
 
-// --- No change to DEFAULT_SCREEN_DESIGN ---
+
 export const DEFAULT_SCREEN_DESIGN: ScreenDesign = {
   width: 1920,
   height: 1080,
@@ -49,7 +48,16 @@ export const DEFAULT_SCREEN_DESIGN: ScreenDesign = {
   }
 };
 
-// --- No change to SharedState or Context ---
+const defaultScreen: HmiBaseScreen = {
+    id: "default_screen",
+    screenNumber: 1,
+    screenName: "Screen",
+    description: "Default Screen",
+    security: 0,
+    individualDesign: false,
+};
+
+
 interface SharedState {
     components: HmiComponent[];
     setComponents: React.Dispatch<React.SetStateAction<HmiComponent[]>>;
@@ -62,13 +70,13 @@ interface SharedState {
 }
 export const SharedStateContext = createContext<SharedState | null>(null);
 
-// --- No change to defaultLayout ---
-const defaultLayout = {
+
+const defaultLayout: IJsonModel = {
     global: {},
     borders: [
         {
             type: "border",
-            location: "left",
+            location: "left" as const,
             size: 250,
             children: [
                 { type: "tab", name: "Project Tree", component: "Project Tree", id: "Project Tree" },
@@ -78,7 +86,7 @@ const defaultLayout = {
         },
         {
             type: "border",
-            location: "right",
+            location: "right" as const,
             size: 250,
             children: [
                 { type: "tab", name: "Property Tree", component: "Property Tree", id: "Property Tree" },
@@ -88,7 +96,7 @@ const defaultLayout = {
         },
         {
             type: "border",
-            location: "bottom",
+            location: "bottom" as const,
             size: 200,
             children: [
                 { type: "tab", name: "Tag Search", component: "Tag Search", id: "Tag Search" },
@@ -100,13 +108,13 @@ const defaultLayout = {
         }
     ],
     layout: {
-        type: "row",
-        id: "root_row", 
+        type: "row" as const,
+        id: "root_row",
         children: [
             {
-                type: "tabset",
-                id: "main_tabset", 
-                children: [] 
+                type: "tabset" as const,
+                id: "main_tabset",
+                children: []
             }
         ]
     }
@@ -121,13 +129,24 @@ export const App: React.FC = () => {
     const [isScreenDesignModalOpen, setIsScreenDesignModalOpen] = useState(false);
     const [isBaseScreenModalOpen, setIsBaseScreenModalOpen] = useState(false); 
 
-    const [baseScreens, setBaseScreens] = useState<HmiBaseScreen[]>([]); 
+    const [baseScreens, setBaseScreens] = useState<HmiBaseScreen[]>([defaultScreen]);
     const [globalScreenDesign, setGlobalScreenDesign] = useState<ScreenDesign>(DEFAULT_SCREEN_DESIGN);
+    const [modelVersion, setModelVersion] = useState(0);
 
-    // --- REMOVED THE REF. We will use a different strategy. ---
 
-    // --- No change to handleOpenScreen ---
-    const handleOpenScreen = useCallback((screenId: string, screenLabel: string) => {
+    const baseScreensRef = useRef(baseScreens);
+    const globalScreenDesignRef = useRef(globalScreenDesign);
+
+    useEffect(() => {
+        baseScreensRef.current = baseScreens;
+    }, [baseScreens]);
+
+    useEffect(() => {
+        globalScreenDesignRef.current = globalScreenDesign;
+    }, [globalScreenDesign]);
+
+    const handleOpenScreen = (screenId: string, screenLabel: string) => {
+        console.log(`Attempting to open screen: ${screenLabel} (${screenId})`);
         const node = model.getNodeById(screenId);
         if (node) {
             model.doAction(Actions.selectTab(screenId));
@@ -136,63 +155,62 @@ export const App: React.FC = () => {
 
         const newNode = {
             type: "tab",
-            id: screenId,        
-            name: screenLabel,   
-            component: "canvas", 
+            id: screenId,
+            name: screenLabel,
+            component: "canvas",
         };
 
         const mainTabset = model.getNodeById("main_tabset");
-        
+
         if (mainTabset) {
             model.doAction(Actions.addNode(
                 newNode,
                 "main_tabset",
                 DockLocation.CENTER,
-                -1 
+                -1
             ));
         } else {
-            model.doAction(Actions.addNode(
-                {
-                    type: "tabset",
-                    id: "main_tabset", 
-                    children: [newNode] 
-                },
-                "root_row", 
-                DockLocation.CENTER,
-                0
-            ));
+            model.doAction(Actions.updateModelAttributes({
+                layout: {
+                    type: "row",
+                    id: "root_row",
+                    children: [
+                        {
+                            type: "tabset",
+                            id: "main_tabset",
+                            children: [newNode]
+                        }
+                    ]
+                }
+            }));
         }
-    }, [model]);
+
+        model.doAction(Actions.selectTab(screenId));
+        setModelVersion(prev => prev + 1); 
+    };
 
 
-    // --- MODIFICATION: The factory is now a simple function. ---
-    // It will be re-created on *every* render, guaranteeing it
-    // closes over the LATEST state of `baseScreens` and `globalScreenDesign`.
-    const factory = (node: TabNode) => {
+    const factory = useCallback((node: TabNode) => {
+        console.log(`Factory called for component: ${node.getComponent()}`);
         const component = node.getComponent();
-        const nodeId = node.getId(); 
+        const nodeId = node.getId();
 
         switch (component) {
             case "canvas": {
-                // This `baseScreens` is guaranteed to be the latest
-                const screen = baseScreens.find(s => s.id === nodeId);
-                
-                // This `globalScreenDesign` is also the latest
-                let canvasDesign = globalScreenDesign; 
-                
+                const screen = baseScreensRef.current.find(s => s.id === nodeId);
+                let canvasDesign = globalScreenDesignRef.current;
                 if (screen && screen.individualDesign && screen.design) {
                     canvasDesign = screen.design;
                 }
-                
                 return <Canvas setCoords={setCoords} design={canvasDesign} />;
             }
             case "Project Tree": return <ProjectTreeDock />;
-            case "Screen Tree": 
+            case "Screen Tree":
                 return (
-                    <ScreenTreeDock 
-                        onOpenScreenDesign={() => setIsScreenDesignModalOpen(true)} 
+                    <ScreenTreeDock
+                        onOpenScreenDesign={() => setIsScreenDesignModalOpen(true)}
                         onOpenBaseScreenModal={() => setIsBaseScreenModalOpen(true)}
-                        onOpenScreen={handleOpenScreen} 
+                        onOpenScreen={handleOpenScreen}
                     />
                 );
             case "System Tree": return <SystemTreeDock />;
@@ -206,10 +224,10 @@ export const App: React.FC = () => {
             case "Data View": return <DataViewDock />;
             default: return <div>Unknown component: {component}</div>;
         }
-    };
-    // --- END MODIFICATION ---
+    }, [setCoords, setIsScreenDesignModalOpen, setIsBaseScreenModalOpen, handleOpenScreen]);
 
-    // --- No change to getDockConfig ---
+
+
     const getDockConfig = useCallback((dockName: DockName): { id: string } => {
         const leftDocks: DockName[] = ["Project Tree", "Screen Tree", "System Tree"];
         const rightDocks: DockName[] = ["Property Tree", "Library", "Screen Image List"];
@@ -220,7 +238,7 @@ export const App: React.FC = () => {
         return { id: "border_bottom" };
     }, []);
 
-    // --- No change to dockVisibility or onToggleDock ---
+
     const [dockVisibility, setDockVisibility] = useState<Record<DockName, boolean>>({
         "Project Tree": true,
         "Screen Tree": true,
@@ -252,19 +270,40 @@ export const App: React.FC = () => {
         }
     }, [dockVisibility, model, getDockConfig]);
 
-    // --- No change to onAction ---
-    const onAction = (action: any) => {
+
+    const onAction = useCallback((action: any) => {
         if (action.type === Actions.DELETE_TAB) {
             const deletedTabId = action.data.node;
             if (Object.keys(dockVisibility).includes(deletedTabId)) {
                 setDockVisibility(prev => ({ ...prev, [deletedTabId]: false }));
+            } else {
+
+                setTimeout(() => {
+                    const mainTabset = model.getNodeById("main_tabset");
+                    if (!mainTabset) {
+                        model.doAction(Actions.updateModelAttributes({
+                            layout: {
+                                type: "row",
+                                id: "root_row",
+                                children: [
+                                    {
+                                        type: "tabset",
+                                        id: "main_tabset",
+                                        children: []
+                                    }
+                                ]
+                            }
+                        }));
+                    }
+                }, 0);
             }
         }
+        setModelVersion(prev => prev + 1);
         return action;
-    };
+    }, [dockVisibility, model]);
 
 
-    // --- No change to sharedStateValue ---
+
     const sharedStateValue = useMemo(() => ({
         components,
         setComponents,
@@ -276,20 +315,21 @@ export const App: React.FC = () => {
         setGlobalScreenDesign, 
     }), [components, selectedComponentId, baseScreens, globalScreenDesign]); 
 
-    // --- No change to handleSaveBaseScreen ---
+
     const handleSaveBaseScreen = (newScreenData: Omit<HmiBaseScreen, 'id'>) => {
         const newScreen: HmiBaseScreen = {
             ...newScreenData,
-            id: `screen_${Date.now()}`, 
+            id: `screen_${Date.now()}`,
         };
-        
-        setBaseScreens(prev => 
+
+        setBaseScreens(prev =>
             [...prev, newScreen].sort((a, b) => a.screenNumber - b.screenNumber)
         );
-        setIsBaseScreenModalOpen(false); 
+        setIsBaseScreenModalOpen(false);
+        handleOpenScreen(newScreen.id, newScreen.screenName);
     };
 
-    // --- No change to handleSaveScreenDesign ---
+
     const handleSaveScreenDesign = (newDesign: ScreenDesign) => {
         setGlobalScreenDesign(newDesign);
         setIsScreenDesignModalOpen(false); 
@@ -302,21 +342,20 @@ export const App: React.FC = () => {
                     model={model} 
                     onToggleDock={onToggleDock} 
                     dockVisibility={dockVisibility} 
-                    onOpenScreenDesign={() => setIsScreenDesignModalOpen(true)} 
+                    onOpenScreenDesign={() => setIsScreenDesignModalOpen(true)}
+                    onOpenBaseScreenModal={() => setIsBaseScreenModalOpen(true)}
                 />
                 <Toolbar />
                 <div className="ide-body">
                     <DrawingToolbar />
                     <div className="ide-main-content">
-                        {/* --- MODIFICATION: Re-create factory on every render ---
-                          This is the simplest way to bust the "stale closure"
-                          cache and ensure the factory always has the latest state.
-                        */}
-                        <Layout 
-                            model={model} 
-                            factory={factory} 
-                            onAction={onAction} 
-                        />
+                        <div key={modelVersion}>
+                            <Layout
+                                model={model}
+                                factory={factory}
+                                onAction={onAction}
+                            />
+                        </div>
                     </div>
                 </div>
                 <StatusBar coords={coords} />

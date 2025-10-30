@@ -16,10 +16,11 @@ interface MenuBarProps {
     onToggleDock: (dockName: DockName) => void;
     dockVisibility: DockVisibility;
     onOpenScreenDesign: () => void; // --- ADDED PROP ---
+    onOpenBaseScreenModal: () => void;
 }
 
 // --- MODIFIED PROPS ---
-export const MenuBar: React.FC<MenuBarProps> = ({ model, onToggleDock, dockVisibility, onOpenScreenDesign }) => {
+export const MenuBar: React.FC<MenuBarProps> = ({ model, onToggleDock, dockVisibility, onOpenScreenDesign, onOpenBaseScreenModal }) => {
     const [activeMenu, setActiveMenu] = useState<string | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
 
@@ -29,7 +30,7 @@ export const MenuBar: React.FC<MenuBarProps> = ({ model, onToggleDock, dockVisib
         { name: 'Search/Replace', component: <SearchReplaceMenu /> },
         { name: 'View', component: <ViewMenu model={model} onToggleDock={onToggleDock} dockVisibility={dockVisibility} /> },
         // --- MODIFIED HERE ---
-        { name: 'Screen', component: <ScreenMenu onOpenScreenDesign={onOpenScreenDesign} /> },
+        { name: 'Screen', component: <ScreenMenu onOpenScreenDesign={onOpenScreenDesign} onOpenBaseScreenModal={onOpenBaseScreenModal} /> },
         // --- END MODIFICATION ---
         { name: 'Common', component: <CommonMenu /> },
         { name: 'Figure', component: <FigureMenu /> },

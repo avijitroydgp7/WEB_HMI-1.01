@@ -3,12 +3,13 @@ import React, { useState } from 'react';
 // --- ADDED PROPS INTERFACE ---
 interface ScreenMenuProps {
     onOpenScreenDesign: () => void;
+    onOpenBaseScreenModal: () => void;
 }
 
-const SubMenu: React.FC<{ items: { icon: string, name: string }[] }> = ({ items }) => (
+const SubMenu: React.FC<{ items: { icon: string, name: string, action?: () => void }[] }> = ({ items }) => (
     <div className="menu-dropdown submenu-dropdown">
         {items.map((item, index) => (
-            <div key={index} className="menu-item">
+            <div key={index} className="menu-item" onClick={item.action}>
                 <span className="material-icons">{item.icon}</span>
                 <span>{item.name}</span>
             </div>
@@ -17,14 +18,14 @@ const SubMenu: React.FC<{ items: { icon: string, name: string }[] }> = ({ items 
 );
 
 // --- MODIFIED COMPONENT SIGNATURE ---
-export const ScreenMenu: React.FC<ScreenMenuProps> = ({ onOpenScreenDesign }) => {
+export const ScreenMenu: React.FC<ScreenMenuProps> = ({ onOpenScreenDesign, onOpenBaseScreenModal }) => {
     const [activeSubMenu, setActiveSubMenu] = useState<string | null>(null);
 
     const menuItems: any[] = [ // Changed to any[] to allow for 'action' and 'separator'
         {
             icon: 'post_add', name: 'New Screen', subMenu: 'newScreen',
             items: [
-                { icon: 'space_dashboard', name: 'Base Screen' },
+                { icon: 'space_dashboard', name: 'Base Screen', action: onOpenBaseScreenModal },
                 { icon: 'open_in_new', name: 'Window Screen' },
                 { icon: 'view_quilt', name: 'Template Screen' },
                 { icon: 'widgets', name: 'Widgets' },
