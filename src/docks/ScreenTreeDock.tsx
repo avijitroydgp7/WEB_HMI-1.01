@@ -113,7 +113,7 @@ export const ScreenTreeDock: React.FC<ScreenTreeDockProps> = ({
                         {/* --- MODIFIED TO ADD FORMATTING AND onDoubleClick --- */}
                         {baseScreens.map(screen => {
                             // Create the formatted label
-                            const screenLabel = `[B]-[${screen.screenNumber}]-${screen.name}`;
+                            const screenLabel = `[B]-[${screen.screenNumber}]-${screen.screenName}`;
                             return (
                                 <TreeItem
                                     key={screen.id}

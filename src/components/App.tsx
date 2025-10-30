@@ -48,14 +48,7 @@ export const DEFAULT_SCREEN_DESIGN: ScreenDesign = {
   }
 };
 
-const defaultScreen: HmiBaseScreen = {
-    id: "default_screen",
-    screenNumber: 1,
-    screenName: "Screen",
-    description: "Default Screen",
-    security: 0,
-    individualDesign: false,
-};
+
 
 
 interface SharedState {
@@ -123,7 +116,7 @@ export const App: React.FC = () => {
     const [isScreenDesignModalOpen, setIsScreenDesignModalOpen] = useState(false);
     const [isBaseScreenModalOpen, setIsBaseScreenModalOpen] = useState(false); 
 
-    const [baseScreens, setBaseScreens] = useState<HmiBaseScreen[]>([defaultScreen]);
+    const [baseScreens, setBaseScreens] = useState<HmiBaseScreen[]>([]);
     const [globalScreenDesign, setGlobalScreenDesign] = useState<ScreenDesign>(DEFAULT_SCREEN_DESIGN);
     const [modelVersion, setModelVersion] = useState(0);
     const [layoutKey, setLayoutKey] = useState(0);
@@ -350,15 +343,20 @@ export const App: React.FC = () => {
 
     const handleSaveBaseScreen = (newScreenData: Omit<HmiBaseScreen, 'id'>) => {
         const newScreen: HmiBaseScreen = {
-            ...newScreenData,
             id: `screen_${Date.now()}`,
+            screenNumber: newScreenData.screenNumber,
+            screenName: newScreenData.screenName,
+            description: newScreenData.description,
+            security: newScreenData.security,
+            individualDesign: newScreenData.individualDesign,
         };
 
         setBaseScreens(prev =>
             [...prev, newScreen].sort((a, b) => a.screenNumber - b.screenNumber)
         );
         setIsBaseScreenModalOpen(false);
-        handleOpenScreen(newScreen.id, newScreen.screenName);
+        const screenLabel = `[B]-[${newScreen.screenNumber}]-${newScreen.screenName}`;
+        handleOpenScreen(newScreen.id, screenLabel);
     };
 
 

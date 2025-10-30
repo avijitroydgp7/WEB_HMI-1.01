@@ -17,7 +17,7 @@ export const BaseScreenModal: React.FC<BaseScreenModalProps> = ({
 }) => {
     // --- State for form inputs ---
     const [screenNumber, setScreenNumber] = useState("1");
-    const [name, setName] = useState("");
+    const [screenName, setScreenName] = useState("");
     const [description, setDescription] = useState("");
     const [security, setSecurity] = useState("0");
     const [individualDesign, setIndividualDesign] = useState(false);
@@ -46,7 +46,7 @@ export const BaseScreenModal: React.FC<BaseScreenModalProps> = ({
         if (isOpen) {
             // Reset fields to default when modal is opened
             setScreenNumber(getNextScreenNumber());
-            setName("");
+            setScreenName("");
             setDescription("");
             setSecurity("0");
             setIndividualDesign(false);
@@ -71,7 +71,7 @@ export const BaseScreenModal: React.FC<BaseScreenModalProps> = ({
             setError("This Screen Number is already in use.");
             return;
         }
-        if (name.trim() === "") {
+        if (screenName.trim() === "") {
             setError("Screen Name is required.");
             return;
         }
@@ -79,7 +79,7 @@ export const BaseScreenModal: React.FC<BaseScreenModalProps> = ({
         // --- All checks passed ---
         onSave({
             screenNumber: num,
-            name,
+            screenName,
             description,
             security: parseInt(security, 10) || 0,
             individualDesign,
@@ -140,11 +140,11 @@ export const BaseScreenModal: React.FC<BaseScreenModalProps> = ({
                 </div>
                 <div className="form-group">
                     <label htmlFor="screenName">Screen Name:</label>
-                    <input 
-                        id="screenName" 
-                        type="text" 
-                        value={name} 
-                        onChange={(e) => setName(e.target.value)}
+                    <input
+                        id="screenName"
+                        type="text"
+                        value={screenName}
+                        onChange={(e) => setScreenName(e.target.value)}
                     />
                 </div>
                 <div className="form-group vertical">
