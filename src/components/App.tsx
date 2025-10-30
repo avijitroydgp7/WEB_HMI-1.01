@@ -110,13 +110,7 @@ const defaultLayout: IJsonModel = {
     layout: {
         type: "row" as const,
         id: "root_row",
-        children: [
-            {
-                type: "tabset" as const,
-                id: "main_tabset",
-                children: []
-            }
-        ]
+        children: []
     }
 };
 
@@ -124,7 +118,7 @@ export const App: React.FC = () => {
     const [components, setComponents] = useState<HmiComponent[]>([]);
     const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
     const [coords, setCoords] = useState({ x: 0, y: 0 });
-    const [model] = useState(() => Model.fromJson(defaultLayout));
+    const [model, setModel] = useState(() => Model.fromJson(defaultLayout));
     
     const [isScreenDesignModalOpen, setIsScreenDesignModalOpen] = useState(false);
     const [isBaseScreenModalOpen, setIsBaseScreenModalOpen] = useState(false); 
@@ -132,6 +126,7 @@ export const App: React.FC = () => {
     const [baseScreens, setBaseScreens] = useState<HmiBaseScreen[]>([defaultScreen]);
     const [globalScreenDesign, setGlobalScreenDesign] = useState<ScreenDesign>(DEFAULT_SCREEN_DESIGN);
     const [modelVersion, setModelVersion] = useState(0);
+    const [layoutKey, setLayoutKey] = useState(0);
 
 
     const baseScreensRef = useRef(baseScreens);
@@ -147,9 +142,30 @@ export const App: React.FC = () => {
 
     const handleOpenScreen = (screenId: string, screenLabel: string) => {
         console.log(`Attempting to open screen: ${screenLabel} (${screenId})`);
+        const currentModelJson = model.toJson();
         const node = model.getNodeById(screenId);
+        console.log(`Node exists for screenId ${screenId}:`, !!node);
         if (node) {
-            model.doAction(Actions.selectTab(screenId));
+            console.log(`Selecting existing tab for screenId ${screenId}`);
+            const newModelJson = { ...currentModelJson };
+            // Find and set the active tab
+            const setActiveTab = (layout: any) => {
+                if (layout.type === 'tabset' && layout.children) {
+                    layout.active = true;
+                    for (const child of layout.children) {
+                        if (child.id === screenId) {
+                            layout.activeId = screenId;
+                            break;
+                        }
+                    }
+                } else if (layout.children) {
+                    for (const child of layout.children) {
+                        setActiveTab(child);
+                    }
+                }
+            };
+            setActiveTab(newModelJson.layout);
+            setModel(Model.fromJson(newModelJson));
             return;
         }
 
@@ -159,34 +175,47 @@ export const App: React.FC = () => {
             name: screenLabel,
             component: "canvas",
         };
+        console.log(`Creating new node for screenId ${screenId}:`, newNode);
 
         const mainTabset = model.getNodeById("main_tabset");
+        console.log(`Main tabset exists:`, !!mainTabset);
+
+        let newModelJson = { ...currentModelJson };
 
         if (mainTabset) {
-            model.doAction(Actions.addNode(
-                newNode,
-                "main_tabset",
-                DockLocation.CENTER,
-                -1
-            ));
-        } else {
-            model.doAction(Actions.updateModelAttributes({
-                layout: {
-                    type: "row",
-                    id: "root_row",
-                    children: [
-                        {
-                            type: "tabset",
-                            id: "main_tabset",
-                            children: [newNode]
-                        }
-                    ]
+            console.log(`Adding node to existing main_tabset for screenId ${screenId}`);
+            // Add to existing main_tabset
+            const addToTabset = (layout: any) => {
+                if (layout.type === 'tabset' && layout.id === 'main_tabset') {
+                    if (!layout.children) layout.children = [];
+                    layout.children.push(newNode);
+                    layout.activeId = screenId;
+                } else if (layout.children) {
+                    for (const child of layout.children) {
+                        addToTabset(child);
+                    }
                 }
-            }));
+            };
+            addToTabset(newModelJson.layout);
+        } else {
+            console.log(`Creating new main_tabset and adding node for screenId ${screenId}`);
+            newModelJson.layout = {
+                type: "row",
+                id: "root_row",
+                children: [
+                    {
+                        type: "tabset",
+                        id: "main_tabset",
+                        children: [newNode],
+                        activeId: screenId
+                    }
+                ]
+            };
         }
 
-        model.doAction(Actions.selectTab(screenId));
-        setModelVersion(prev => prev + 1); 
+        console.log(`Selecting tab for screenId ${screenId}`);
+        console.log('New model JSON:', newModelJson);
+        setModel(Model.fromJson(newModelJson));
     };
 
 
@@ -197,11 +226,14 @@ export const App: React.FC = () => {
 
         switch (component) {
             case "canvas": {
+                console.log(`Rendering Canvas for nodeId: ${nodeId}`);
                 const screen = baseScreensRef.current.find(s => s.id === nodeId);
+                console.log(`Screen found for nodeId ${nodeId}:`, !!screen);
                 let canvasDesign = globalScreenDesignRef.current;
                 if (screen && screen.individualDesign && screen.design) {
                     canvasDesign = screen.design;
                 }
+                console.log(`Canvas design for nodeId ${nodeId}:`, canvasDesign);
                 return <Canvas setCoords={setCoords} design={canvasDesign} />;
             }
             case "Project Tree": return <ProjectTreeDock />;
@@ -298,7 +330,7 @@ export const App: React.FC = () => {
                 }, 0);
             }
         }
-        setModelVersion(prev => prev + 1);
+        setLayoutKey(prev => prev + 1);
         return action;
     }, [dockVisibility, model]);
 
@@ -349,7 +381,7 @@ export const App: React.FC = () => {
                 <div className="ide-body">
                     <DrawingToolbar />
                     <div className="ide-main-content">
-                        <div key={modelVersion}>
+                        <div key={layoutKey}>
                             <Layout
                                 model={model}
                                 factory={factory}
