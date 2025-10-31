@@ -1,6 +1,6 @@
 import React, { useState, useCallback, createContext, useMemo, useRef, useEffect, useLayoutEffect } from "react";
 import { Layout, Model, TabNode, Actions, DockLocation, IJsonModel } from "flexlayout-react";
-import type { HmiComponent, DockName, HmiBaseScreen, ScreenDesign, ScreenZoomControls } from "../types/hmi";
+import type { HmiComponent, DockName, HmiBaseScreen, ScreenDesign, ScreenZoomControls, SharedState } from "../types/hmi"; // MODIFIED: Imported SharedState
 
 import { MenuBar } from "./MenuBar";
 import { Toolbar } from "./Toolbar";
@@ -49,20 +49,6 @@ export const DEFAULT_SCREEN_DESIGN: ScreenDesign = {
 };
 
 
-
-
-interface SharedState {
-    components: HmiComponent[];
-    setComponents: React.Dispatch<React.SetStateAction<HmiComponent[]>>;
-    selectedComponent: HmiComponent | null;
-    setSelectedComponentId: (id: string | null) => void;
-    baseScreens: HmiBaseScreen[];
-    setBaseScreens: React.Dispatch<React.SetStateAction<HmiBaseScreen[]>>;
-    globalScreenDesign: ScreenDesign;
-    setGlobalScreenDesign: React.Dispatch<React.SetStateAction<ScreenDesign>>;
-    screenZoomControls: ScreenZoomControls;
-    setScreenZoomControls: React.Dispatch<React.SetStateAction<ScreenZoomControls>>;
-}
 export const SharedStateContext = createContext<SharedState | null>(null);
 
 
@@ -110,21 +96,21 @@ const defaultLayout: IJsonModel = {
 };
 
 export const App: React.FC = () => {
-    const [components, setComponents] = useState<HmiComponent[]>([]);
-    const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
+    const [baseScreens, setBaseScreens] = useState<HmiBaseScreen[]>([]);
+    const [selectedComponentInfo, setSelectedComponentInfo] = useState<{ screenId: string; componentId: string; } | null>(null);
+    const [activeScreenId, setActiveScreenId] = useState<string | null>(null);
+    
     const [coords, setCoords] = useState({ x: 0, y: 0 });
     const [model, setModel] = useState(() => Model.fromJson(defaultLayout));
     
     const [isScreenDesignModalOpen, setIsScreenDesignModalOpen] = useState(false);
     const [isBaseScreenModalOpen, setIsBaseScreenModalOpen] = useState(false); 
 
-    const [baseScreens, setBaseScreens] = useState<HmiBaseScreen[]>([]);
     const [globalScreenDesign, setGlobalScreenDesign] = useState<ScreenDesign>(DEFAULT_SCREEN_DESIGN);
     const [screenZoomControls, setScreenZoomControls] = useState<ScreenZoomControls>({});
-    const [modelVersion, setModelVersion] = useState(0);
-    const [layoutKey, setLayoutKey] = useState(0);
+    const [layoutKey, setLayoutKey] = useState(0); 
 
-    // Prevent browser zoom and handle canvas zoom
+
     useLayoutEffect(() => {
         const preventZoom = (e: WheelEvent) => {
             if (e.ctrlKey) {
@@ -135,22 +121,16 @@ export const App: React.FC = () => {
         const handleKeyZoom = (e: KeyboardEvent) => {
             if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '=')) {
                 e.preventDefault();
-                const activeTab = model.getActiveTabset()?.getSelectedNode();
-                const activeScreenId = activeTab?.getId();
                 if (activeScreenId && screenZoomControls[activeScreenId]) {
                     screenZoomControls[activeScreenId].zoomIn();
                 }
             } else if ((e.ctrlKey || e.metaKey) && e.key === '-') {
                 e.preventDefault();
-                const activeTab = model.getActiveTabset()?.getSelectedNode();
-                const activeScreenId = activeTab?.getId();
                 if (activeScreenId && screenZoomControls[activeScreenId]) {
                     screenZoomControls[activeScreenId].zoomOut();
                 }
             } else if ((e.ctrlKey || e.metaKey) && e.key === '0') {
                 e.preventDefault();
-                const activeTab = model.getActiveTabset()?.getSelectedNode();
-                const activeScreenId = activeTab?.getId();
                 if (activeScreenId && screenZoomControls[activeScreenId]) {
                     screenZoomControls[activeScreenId].resetTransform();
                 }
@@ -164,7 +144,7 @@ export const App: React.FC = () => {
             document.removeEventListener('wheel', preventZoom);
             document.removeEventListener('keydown', handleKeyZoom);
         };
-    }, [model, screenZoomControls]);
+    }, [model, screenZoomControls, activeScreenId]); 
 
 
     const baseScreensRef = useRef(baseScreens);
@@ -178,29 +158,14 @@ export const App: React.FC = () => {
         globalScreenDesignRef.current = globalScreenDesign;
     }, [globalScreenDesign]);
 
-    const handleOpenScreen = (screenId: string, screenLabel: string) => {
+    // --- MODIFICATION: Wrapped in useCallback ---
+    const handleOpenScreen = useCallback((screenId: string, screenLabel: string) => {
         const currentModelJson = model.toJson();
         const node = model.getNodeById(screenId);
+        
         if (node) {
-            const newModelJson = { ...currentModelJson };
-            // Find and set the active tab
-            const setActiveTab = (layout: any) => {
-                if (layout.type === 'tabset' && layout.children) {
-                    layout.active = true;
-                    for (const child of layout.children) {
-                        if (child.id === screenId) {
-                            layout.activeId = screenId;
-                            break;
-                        }
-                    }
-                } else if (layout.children) {
-                    for (const child of layout.children) {
-                        setActiveTab(child);
-                    }
-                }
-            };
-            setActiveTab(newModelJson.layout);
-            setModel(Model.fromJson(newModelJson));
+            model.doAction(Actions.selectTab(screenId));
+            setActiveScreenId(screenId); 
             return;
         }
 
@@ -212,11 +177,9 @@ export const App: React.FC = () => {
         };
 
         const mainTabset = model.getNodeById("main_tabset");
-
         let newModelJson = { ...currentModelJson };
 
         if (mainTabset) {
-            // Add to existing main_tabset
             const addToTabset = (layout: any) => {
                 if (layout.type === 'tabset' && layout.id === 'main_tabset') {
                     if (!layout.children) layout.children = [];
@@ -245,21 +208,32 @@ export const App: React.FC = () => {
         }
 
         setModel(Model.fromJson(newModelJson));
-    };
+        setActiveScreenId(screenId); 
+    }, [model]); // Dependency
+    // --- END MODIFICATION ---
 
 
+    // --- MODIFICATION: Wrapped in useCallback ---
     const factory = useCallback((node: TabNode) => {
         const component = node.getComponent();
         const nodeId = node.getId();
 
         switch (component) {
             case "canvas": {
-                const screen = baseScreensRef.current.find(s => s.id === nodeId);
+                const screen = baseScreens.find(s => s.id === nodeId); 
                 let canvasDesign = globalScreenDesign;
+                
                 if (screen && screen.individualDesign && screen.design) {
                     canvasDesign = screen.design;
+                } else if (!screen) {
+                    return <div>Loading screen...</div>;
                 }
-                return <Canvas setCoords={setCoords} design={canvasDesign} screenId={nodeId} />;
+                
+                return <Canvas 
+                            setCoords={setCoords} 
+                            design={canvasDesign} 
+                            screenId={nodeId} 
+                        />;
             }
             case "Project Tree": return <ProjectTreeDock />;
             case "Screen Tree":
@@ -281,8 +255,9 @@ export const App: React.FC = () => {
             case "Data View": return <DataViewDock />;
             default: return <div>Unknown component: {component}</div>;
         }
-    }, [setCoords, setIsScreenDesignModalOpen, setIsBaseScreenModalOpen, handleOpenScreen, globalScreenDesign]);
-
+    // Dependencies
+    }, [setCoords, globalScreenDesign, baseScreens, handleOpenScreen]); 
+    // --- END MODIFICATION ---
 
 
     const getDockConfig = useCallback((dockName: DockName): { id: string } => {
@@ -329,12 +304,28 @@ export const App: React.FC = () => {
 
 
     const onAction = useCallback((action: any) => {
+        if (action.type === Actions.SELECT_TAB) {
+            const nodeId = action.data.node;
+            if (!Object.keys(dockVisibility).includes(nodeId)) {
+                setActiveScreenId(nodeId);
+            }
+        }
+        
         if (action.type === Actions.DELETE_TAB) {
             const deletedTabId = action.data.node;
             if (Object.keys(dockVisibility).includes(deletedTabId)) {
                 setDockVisibility(prev => ({ ...prev, [deletedTabId]: false }));
             } else {
-
+                if (deletedTabId === activeScreenId) {
+                    if (selectedComponentInfo?.screenId === deletedTabId) {
+                        setSelectedComponentInfo(null);
+                    }
+                    const mainTabset = model.getNodeById("main_tabset");
+                    setTimeout(() => {
+                        const newSelectedNode = mainTabset?.getSelectedNode();
+                        setActiveScreenId(newSelectedNode?.getId() || null);
+                    }, 0);
+                }
                 setTimeout(() => {
                     const mainTabset = model.getNodeById("main_tabset");
                     if (!mainTabset) {
@@ -357,25 +348,58 @@ export const App: React.FC = () => {
         }
         setLayoutKey(prev => prev + 1);
         return action;
-    }, [dockVisibility, model]);
+    }, [dockVisibility, model, activeScreenId, selectedComponentInfo]); 
 
 
+    const updateBaseScreen = useCallback((screenId: string, updatedScreen: HmiBaseScreen) => {
+        setBaseScreens(prevScreens => 
+            prevScreens.map(s => (s.id === screenId ? updatedScreen : s))
+        );
+    }, []); 
+
+    const selectedComponentData = useMemo(() => {
+        if (!selectedComponentInfo) return null;
+        
+        const screen = baseScreens.find(s => s.id === selectedComponentInfo.screenId);
+        if (!screen) return null;
+        
+        const component = screen.components.find(c => c.id === selectedComponentInfo.componentId);
+        if (!component) return null;
+        
+        return { screenId: screen.id, component };
+    }, [selectedComponentInfo, baseScreens]);
+
+    const handleSetSelectedComponent = useCallback((id: string | null, screenId: string | null) => {
+        if (id && screenId) {
+            setSelectedComponentInfo({ componentId: id, screenId: screenId });
+        } else {
+            setSelectedComponentInfo(null);
+        }
+    }, []); 
 
     const sharedStateValue = useMemo(() => ({
-        components,
-        setComponents,
-        selectedComponent: components.find(c => c.id === selectedComponentId) ?? null,
-        setSelectedComponentId,
+        selectedComponent: selectedComponentData,
+        setSelectedComponentId: handleSetSelectedComponent,
         baseScreens,
         setBaseScreens,
         globalScreenDesign,
         setGlobalScreenDesign,
         screenZoomControls,
         setScreenZoomControls,
-    }), [components, selectedComponentId, baseScreens, globalScreenDesign, screenZoomControls]);
+        updateBaseScreen,
+        activeScreenId,
+    }), [
+        selectedComponentData, 
+        handleSetSelectedComponent, 
+        baseScreens, 
+        globalScreenDesign, 
+        screenZoomControls, 
+        updateBaseScreen, 
+        activeScreenId
+    ]);
 
 
-    const handleSaveBaseScreen = (newScreenData: Omit<HmiBaseScreen, 'id'>) => {
+    const handleSaveBaseScreen = (newScreenData: Omit<HmiBaseScreen, 'id' | 'components'>) => {
         const newScreen: HmiBaseScreen = {
             id: `screen_${Date.now()}`,
             screenNumber: newScreenData.screenNumber,
@@ -383,6 +407,8 @@ export const App: React.FC = () => {
             description: newScreenData.description,
             security: newScreenData.security,
             individualDesign: newScreenData.individualDesign,
+            components: [], 
+            design: newScreenData.individualDesign ? globalScreenDesignRef.current : undefined,
         };
 
         setBaseScreens(prev =>
@@ -413,7 +439,7 @@ export const App: React.FC = () => {
                 <div className="ide-body">
                     <DrawingToolbar />
                     <div className="ide-main-content">
-                        <div key={layoutKey}>
+                        <div key={layoutKey}> 
                             <Layout
                                 model={model}
                                 factory={factory}

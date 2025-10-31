@@ -1,3 +1,5 @@
+// src/types/hmi.ts
+
 // --- NEW TYPES ---
 export type FillStyle = 'colour' | 'gradient' | 'pattern' | 'image';
 export type GradationType = 'horizontal' | 'vertical' | 'upDiagonal' | 'downDiagonal';
@@ -45,6 +47,7 @@ export interface HmiBaseScreen {
   security: number;
   individualDesign: boolean;
   design?: ScreenDesign; // Optional individual design
+  components: HmiComponent[]; // <-- MODIFICATION: Components are now part of the screen
 }
 // --- END MODIFICATION ---
 
@@ -101,3 +104,30 @@ export interface ZoomControls {
 }
 
 export type ScreenZoomControls = Record<string, ZoomControls>;
+
+
+// --- MODIFIED SharedState ---
+export interface SharedState {
+    // REMOVED: Global components state
+    // components: HmiComponent[];
+    // setComponents: React.Dispatch<React.SetStateAction<HmiComponent[]>>;
+    
+    // MODIFIED: Selected component now includes which screen it's on
+    selectedComponent: { screenId: string; component: HmiComponent; } | null;
+    setSelectedComponentId: (id: string | null, screenId: string | null) => void;
+    
+    baseScreens: HmiBaseScreen[];
+    setBaseScreens: React.Dispatch<React.SetStateAction<HmiBaseScreen[]>>;
+    
+    // ADDED: Function to update a single screen
+    updateBaseScreen: (screenId: string, updatedScreen: HmiBaseScreen) => void;
+    
+    // ADDED: Tracks the currently focused canvas tab
+    activeScreenId: string | null;
+
+    globalScreenDesign: ScreenDesign;
+    setGlobalScreenDesign: React.Dispatch<React.SetStateAction<ScreenDesign>>;
+    screenZoomControls: ScreenZoomControls;
+    setScreenZoomControls: React.Dispatch<React.SetStateAction<ScreenZoomControls>>;
+}
+// --- END MODIFICATION ---
