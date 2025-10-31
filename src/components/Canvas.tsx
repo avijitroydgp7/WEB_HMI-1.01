@@ -158,7 +158,7 @@ export const Canvas: React.FC<CanvasProps> = ({ setCoords, design, screenId }) =
             pinch={{ step: 0.1 }}
             doubleClick={{ disabled: true }}
             onWheel={({ e, state, setTransform }) => {
-                if (e.deltaX !== 0 || e.deltaY !== 0) {
+                if (e && (e.deltaX !== 0 || e.deltaY !== 0)) {
                     e.preventDefault();
                     setTransform(state.positionX + e.deltaX, state.positionY + e.deltaY, state.scale);
                 }
@@ -173,7 +173,7 @@ export const Canvas: React.FC<CanvasProps> = ({ setCoords, design, screenId }) =
                         resetTransform,
                     };
                     setScreenZoomControls(prev => ({ ...prev, [screenId]: zoomControls }));
-                }, [screenId, setScreenZoomControls, zoomIn, zoomOut, resetTransform]);
+                }, [screenId, setScreenZoomControls]);
 
                 return (
                     <TransformComponent

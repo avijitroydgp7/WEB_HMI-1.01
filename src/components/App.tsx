@@ -179,12 +179,9 @@ export const App: React.FC = () => {
     }, [globalScreenDesign]);
 
     const handleOpenScreen = (screenId: string, screenLabel: string) => {
-        console.log(`Attempting to open screen: ${screenLabel} (${screenId})`);
         const currentModelJson = model.toJson();
         const node = model.getNodeById(screenId);
-        console.log(`Node exists for screenId ${screenId}:`, !!node);
         if (node) {
-            console.log(`Selecting existing tab for screenId ${screenId}`);
             const newModelJson = { ...currentModelJson };
             // Find and set the active tab
             const setActiveTab = (layout: any) => {
@@ -213,15 +210,12 @@ export const App: React.FC = () => {
             name: screenLabel,
             component: "canvas",
         };
-        console.log(`Creating new node for screenId ${screenId}:`, newNode);
 
         const mainTabset = model.getNodeById("main_tabset");
-        console.log(`Main tabset exists:`, !!mainTabset);
 
         let newModelJson = { ...currentModelJson };
 
         if (mainTabset) {
-            console.log(`Adding node to existing main_tabset for screenId ${screenId}`);
             // Add to existing main_tabset
             const addToTabset = (layout: any) => {
                 if (layout.type === 'tabset' && layout.id === 'main_tabset') {
@@ -236,7 +230,6 @@ export const App: React.FC = () => {
             };
             addToTabset(newModelJson.layout);
         } else {
-            console.log(`Creating new main_tabset and adding node for screenId ${screenId}`);
             newModelJson.layout = {
                 type: "row",
                 id: "root_row",
@@ -251,27 +244,21 @@ export const App: React.FC = () => {
             };
         }
 
-        console.log(`Selecting tab for screenId ${screenId}`);
-        console.log('New model JSON:', newModelJson);
         setModel(Model.fromJson(newModelJson));
     };
 
 
     const factory = useCallback((node: TabNode) => {
-        console.log(`Factory called for component: ${node.getComponent()}`);
         const component = node.getComponent();
         const nodeId = node.getId();
 
         switch (component) {
             case "canvas": {
-                console.log(`Rendering Canvas for nodeId: ${nodeId}`);
                 const screen = baseScreensRef.current.find(s => s.id === nodeId);
-                console.log(`Screen found for nodeId ${nodeId}:`, !!screen);
-                let canvasDesign = globalScreenDesignRef.current;
+                let canvasDesign = globalScreenDesign;
                 if (screen && screen.individualDesign && screen.design) {
                     canvasDesign = screen.design;
                 }
-                console.log(`Canvas design for nodeId ${nodeId}:`, canvasDesign);
                 return <Canvas setCoords={setCoords} design={canvasDesign} screenId={nodeId} />;
             }
             case "Project Tree": return <ProjectTreeDock />;
@@ -294,7 +281,7 @@ export const App: React.FC = () => {
             case "Data View": return <DataViewDock />;
             default: return <div>Unknown component: {component}</div>;
         }
-    }, [setCoords, setIsScreenDesignModalOpen, setIsBaseScreenModalOpen, handleOpenScreen]);
+    }, [setCoords, setIsScreenDesignModalOpen, setIsBaseScreenModalOpen, handleOpenScreen, globalScreenDesign]);
 
 
 
