@@ -1,6 +1,6 @@
-import React, { useState, useCallback, createContext, useMemo, useRef, useEffect } from "react";
+import React, { useState, useCallback, createContext, useMemo, useRef, useEffect, useLayoutEffect } from "react";
 import { Layout, Model, TabNode, Actions, DockLocation, IJsonModel } from "flexlayout-react";
-import type { HmiComponent, DockName, HmiBaseScreen, ScreenDesign } from "../types/hmi";
+import type { HmiComponent, DockName, HmiBaseScreen, ScreenDesign, ScreenZoomControls } from "../types/hmi";
 
 import { MenuBar } from "./MenuBar";
 import { Toolbar } from "./Toolbar";
@@ -58,8 +58,10 @@ interface SharedState {
     setSelectedComponentId: (id: string | null) => void;
     baseScreens: HmiBaseScreen[];
     setBaseScreens: React.Dispatch<React.SetStateAction<HmiBaseScreen[]>>;
-    globalScreenDesign: ScreenDesign; 
-    setGlobalScreenDesign: React.Dispatch<React.SetStateAction<ScreenDesign>>; 
+    globalScreenDesign: ScreenDesign;
+    setGlobalScreenDesign: React.Dispatch<React.SetStateAction<ScreenDesign>>;
+    screenZoomControls: ScreenZoomControls;
+    setScreenZoomControls: React.Dispatch<React.SetStateAction<ScreenZoomControls>>;
 }
 export const SharedStateContext = createContext<SharedState | null>(null);
 
@@ -118,8 +120,51 @@ export const App: React.FC = () => {
 
     const [baseScreens, setBaseScreens] = useState<HmiBaseScreen[]>([]);
     const [globalScreenDesign, setGlobalScreenDesign] = useState<ScreenDesign>(DEFAULT_SCREEN_DESIGN);
+    const [screenZoomControls, setScreenZoomControls] = useState<ScreenZoomControls>({});
     const [modelVersion, setModelVersion] = useState(0);
     const [layoutKey, setLayoutKey] = useState(0);
+
+    // Prevent browser zoom and handle canvas zoom
+    useLayoutEffect(() => {
+        const preventZoom = (e: WheelEvent) => {
+            if (e.ctrlKey) {
+                e.preventDefault();
+            }
+        };
+
+        const handleKeyZoom = (e: KeyboardEvent) => {
+            if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '=')) {
+                e.preventDefault();
+                const activeTab = model.getActiveTabset()?.getSelectedNode();
+                const activeScreenId = activeTab?.getId();
+                if (activeScreenId && screenZoomControls[activeScreenId]) {
+                    screenZoomControls[activeScreenId].zoomIn();
+                }
+            } else if ((e.ctrlKey || e.metaKey) && e.key === '-') {
+                e.preventDefault();
+                const activeTab = model.getActiveTabset()?.getSelectedNode();
+                const activeScreenId = activeTab?.getId();
+                if (activeScreenId && screenZoomControls[activeScreenId]) {
+                    screenZoomControls[activeScreenId].zoomOut();
+                }
+            } else if ((e.ctrlKey || e.metaKey) && e.key === '0') {
+                e.preventDefault();
+                const activeTab = model.getActiveTabset()?.getSelectedNode();
+                const activeScreenId = activeTab?.getId();
+                if (activeScreenId && screenZoomControls[activeScreenId]) {
+                    screenZoomControls[activeScreenId].resetTransform();
+                }
+            }
+        };
+
+        document.addEventListener('wheel', preventZoom, { passive: false });
+        document.addEventListener('keydown', handleKeyZoom);
+
+        return () => {
+            document.removeEventListener('wheel', preventZoom);
+            document.removeEventListener('keydown', handleKeyZoom);
+        };
+    }, [model, screenZoomControls]);
 
 
     const baseScreensRef = useRef(baseScreens);
@@ -227,7 +272,7 @@ export const App: React.FC = () => {
                     canvasDesign = screen.design;
                 }
                 console.log(`Canvas design for nodeId ${nodeId}:`, canvasDesign);
-                return <Canvas setCoords={setCoords} design={canvasDesign} />;
+                return <Canvas setCoords={setCoords} design={canvasDesign} screenId={nodeId} />;
             }
             case "Project Tree": return <ProjectTreeDock />;
             case "Screen Tree":
@@ -336,9 +381,11 @@ export const App: React.FC = () => {
         setSelectedComponentId,
         baseScreens,
         setBaseScreens,
-        globalScreenDesign, 
-        setGlobalScreenDesign, 
-    }), [components, selectedComponentId, baseScreens, globalScreenDesign]); 
+        globalScreenDesign,
+        setGlobalScreenDesign,
+        screenZoomControls,
+        setScreenZoomControls,
+    }), [components, selectedComponentId, baseScreens, globalScreenDesign, screenZoomControls]);
 
 
     const handleSaveBaseScreen = (newScreenData: Omit<HmiBaseScreen, 'id'>) => {

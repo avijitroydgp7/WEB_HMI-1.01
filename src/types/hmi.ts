@@ -78,7 +78,7 @@ export interface HmiIndicatorComponent extends HmiComponentBase {
 export type HmiComponent = HmiButtonComponent | HmiLabelComponent | HmiIndicatorComponent;
 
 // --- Docking System Types ---
-export type DockName = 
+export type DockName =
   | 'Project Tree'
   | 'Screen Tree'
   | 'System Tree'
@@ -92,3 +92,12 @@ export type DockName =
   | 'Data View';
 
 export type DockVisibility = Record<DockName, boolean>;
+
+// --- Zoom Controls Types ---
+export interface ZoomControls {
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetTransform: () => void;
+}
+
+export type ScreenZoomControls = Record<string, ZoomControls>;

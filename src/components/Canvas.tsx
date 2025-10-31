@@ -1,8 +1,9 @@
-import React, { DragEvent, MouseEvent as ReactMouseEvent, useContext } from 'react';
+import React, { DragEvent, MouseEvent as ReactMouseEvent, useContext, useState, useEffect, useRef } from 'react';
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch';
 import { HmiComponentRenderer } from './HmiComponentRenderer';
 import { SharedStateContext } from './App';
 // --- MODIFIED IMPORTS ---
-import type { HmiComponentType, HmiButtonComponent, HmiLabelComponent, HmiIndicatorComponent, HmiComponent, ScreenDesign } from '../types/hmi';
+import type { HmiComponentType, HmiButtonComponent, HmiLabelComponent, HmiIndicatorComponent, HmiComponent, ScreenDesign, ZoomControls } from '../types/hmi';
 import { getGradientStyle } from '../modals/GradientModal';
 import { getPatternStyle, PATTERNS } from '../modals/PatternModal';
 import { hexToRgba } from '../utils/colorUtils';
@@ -11,6 +12,7 @@ import { hexToRgba } from '../utils/colorUtils';
 interface CanvasProps {
     setCoords: (coords: { x: number, y: number }) => void;
     design: ScreenDesign; // --- ADDED PROP ---
+    screenId: string; // --- ADDED PROP ---
 }
 
 // --- ADDED HELPER FUNCTION ---
@@ -76,33 +78,21 @@ const getCanvasStyle = (design: ScreenDesign): React.CSSProperties => {
             break;
     }
     
-    // Add grid background image
-    const grid = 'linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px)';
-    
-    // Combine grid with existing background
-    if (style.background || style.backgroundColor) {
-         if (style.background) {
-            style.background = `${grid}, ${style.background}`;
-         } else {
-             style.background = grid;
-             // backgroundColor is already set
-         }
-    } else {
-        style.background = grid;
-    }
-    style.backgroundSize = '20px 20px';
+
 
     return style;
 };
 // --- END HELPER FUNCTION ---
 
 
-export const Canvas: React.FC<CanvasProps> = ({ setCoords, design }) => {
+export const Canvas: React.FC<CanvasProps> = ({ setCoords, design, screenId }) => {
     const context = useContext(SharedStateContext);
     if (!context) return <div>Loading...</div>;
 
-    const { components, selectedComponent, setComponents, setSelectedComponentId } = context;
+    const { components, selectedComponent, setComponents, setSelectedComponentId, screenZoomControls, setScreenZoomControls } = context;
     const selectedComponentId = selectedComponent?.id ?? null;
+
+    const canvasRef = useRef<HTMLDivElement>(null);
 
     const handleDragOver = (e: DragEvent) => {
         e.preventDefault();
@@ -158,23 +148,59 @@ export const Canvas: React.FC<CanvasProps> = ({ setCoords, design }) => {
     };
 
     return (
-        <div 
-            className="canvas" 
-            // --- MODIFIED: Apply dynamic style ---
-            style={getCanvasStyle(design)}
-            onDragOver={handleDragOver} 
-            onDrop={handleDrop} 
-            onMouseDown={handleCanvasMouseDown}
-            onMouseMove={handleMouseMove}
+        <TransformWrapper
+            initialScale={1}
+            minScale={0.1}
+            maxScale={5}
+            limitToBounds={false}
+            centerOnInit={false}
+            wheel={{ step: 0.1 }}
+            pinch={{ step: 0.1 }}
+            doubleClick={{ disabled: true }}
+            onWheel={({ e, state, setTransform }) => {
+                if (e.deltaX !== 0 || e.deltaY !== 0) {
+                    e.preventDefault();
+                    setTransform(state.positionX + e.deltaX, state.positionY + e.deltaY, state.scale);
+                }
+            }}
         >
-            {components.map(component => (
-                <HmiComponentRenderer
-                    key={component.id}
-                    component={component}
-                    onSelect={handleSelectComponent}
-                    selected={component.id === selectedComponentId}
-                />
-            ))}
-        </div>
+            {({ zoomIn, zoomOut, resetTransform }) => {
+                // Register zoom controls
+                useEffect(() => {
+                    const zoomControls: ZoomControls = {
+                        zoomIn,
+                        zoomOut,
+                        resetTransform,
+                    };
+                    setScreenZoomControls(prev => ({ ...prev, [screenId]: zoomControls }));
+                }, [screenId, setScreenZoomControls, zoomIn, zoomOut, resetTransform]);
+
+                return (
+                    <TransformComponent
+                        wrapperStyle={{ width: '100%', height: '100%' }}
+                        contentStyle={{ width: '100%', height: '100%' }}
+                    >
+                        <div
+                            ref={canvasRef}
+                            className="canvas"
+                            style={getCanvasStyle(design)}
+                            onDragOver={handleDragOver}
+                            onDrop={handleDrop}
+                            onMouseDown={handleCanvasMouseDown}
+                            onMouseMove={handleMouseMove}
+                        >
+                            {components.map(component => (
+                                <HmiComponentRenderer
+                                    key={component.id}
+                                    component={component}
+                                    onSelect={handleSelectComponent}
+                                    selected={component.id === selectedComponentId}
+                                />
+                            ))}
+                        </div>
+                    </TransformComponent>
+                );
+            }}
+        </TransformWrapper>
     );
 };

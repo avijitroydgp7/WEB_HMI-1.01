@@ -1,7 +1,8 @@
 
-import React, { useState } from 'react';
-import type { DockName, DockVisibility } from '../types/hmi';
+import React, { useState, useContext } from 'react';
+import type { DockName, DockVisibility, ZoomControls } from '../types/hmi';
 import type { Model } from 'flexlayout-react';
+import { SharedStateContext } from '../components/App';
 
 interface ViewMenuProps {
     model: Model;
@@ -27,6 +28,7 @@ const CheckableItem: React.FC<{
 );
 
 export const ViewMenu: React.FC<ViewMenuProps> = ({ model, onToggleDock, dockVisibility }) => {
+    const context = useContext(SharedStateContext);
     const [activeSubMenu, setActiveSubMenu] = useState<string | null>(null);
     const [stateOnOff, setStateOnOff] = useState(false);
     const [objectSnap, setObjectSnap] = useState(false);
@@ -41,6 +43,11 @@ export const ViewMenu: React.FC<ViewMenuProps> = ({ model, onToggleDock, dockVis
         "Debug": true,
     });
 
+    // Get active screen ID from model
+    const activeTab = model.getActiveTabset()?.getSelectedNode();
+    const activeScreenId = activeTab?.getId() || null;
+    const zoomControls = activeScreenId && context?.screenZoomControls[activeScreenId];
+
     const handleDockToggle = (dockName: DockName) => {
         onToggleDock(dockName);
     };
@@ -54,10 +61,17 @@ export const ViewMenu: React.FC<ViewMenuProps> = ({ model, onToggleDock, dockVis
         "Property Tree", "IP Address", "Library", "Controller List", "Data View", "Screen Image List"
     ];
 
-    const zoomLevels = ["Fit Screen", "20%", "50%", "75%", "100%", "125%", "150%", "200%", "250%", "300%", "400%", "500%", "600%", "700%", "800%", "900%", "1000%"];
+
 
     const menuItems = [
         { name: "Preview", icon: "visibility" },
+        {
+            name: "Zoom", icon: "zoom_in", subMenu: 'zoom', items: [
+                { name: "Zoom In", icon: "zoom_in", action: () => zoomControls?.zoomIn() },
+                { name: "Zoom Out", icon: "zoom_out", action: () => zoomControls?.zoomOut() },
+                { name: "Reset Transform", icon: "center_focus_strong", action: () => zoomControls?.resetTransform() },
+            ]
+        },
         {
             name: "State No.", icon: "format_list_numbered", subMenu: 'state', items: [
                 { name: "State On/Off", icon: "power_settings_new", checkbox: true, checked: stateOnOff, action: () => setStateOnOff(!stateOnOff) },
@@ -109,9 +123,6 @@ export const ViewMenu: React.FC<ViewMenuProps> = ({ model, onToggleDock, dockVis
             ]
         },
         { name: "Object Snap", icon: "center_focus_strong", checkbox: true, checked: objectSnap, action: () => setObjectSnap(!objectSnap) },
-        {
-            name: "Zoom", icon: "zoom_in", subMenu: 'zoom', items: zoomLevels.map(name => ({ name, icon: "zoom_in" }))
-        },
     ];
 
     const renderMenuItem = (item: any, index: number) => {
